@@ -38,8 +38,22 @@
 		<div id="primaryContentContainer">
 			<div id="primaryContent">
                 <h2>Errata</h2>
-                 <p>Coming soon as needed. The book and code files have been checked closely, but it's unlikely a project this large will be completely error free. So we'll report bugs as they are discovered.</p>
-                <p>R packages often change their computation algorithms, function names, and requirements. <strong>If your code doesn't work or the output doesn't match what is shown in the book</strong>, see <b>Section 1.5.4</b> in the book for notes and ideas.</p>
+                 <p><b>General note.</b>R packages often change their computation algorithms, function names, and requirements. <strong>If your code doesn't work or the output doesn't match what is shown in the book</strong>, see <b>Section 1.5.4</b> in the book for notes and ideas.</p>
+                <h3>Specific errata</h3>
+                
+                <table>
+                    <tr>
+                        <th>Page</th>
+                        <th>Change</th>
+                    </tr>
+                    <tr class="rowA">
+                        <td>329</td>
+                        <td>Add following line at beginning of first code block:<br><br>
+                        <pre>seg.rf.class <- predict(seg.rf, seg.df.test)</pre><br>
+                            (for print only; the available <a href="code.html" accesskey="3" title="">.R file</a> is correct)
+                        </td>
+                    </tr>
+                </table>
                 
                 <h3>Bug reports</h3>
 				<table>
