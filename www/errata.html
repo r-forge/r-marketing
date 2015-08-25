@@ -47,12 +47,28 @@
                         <th>Change</th>
                     </tr>
                     <tr class="rowA">
+                        <td>163</td>
+                        <td>Add following line at beginning of first code block:<br><br>
+                        <pre>library(gpairs) # also, install if needed</pre><br>
+                            (for print only; the available <a href="code.html" accesskey="3" title="">.R file</a> is correct)
+                        </td>
+                    </tr>
+                   <tr class="rowB">
+                       <td>314</td>
+                        <td>The call to Mclust() hangs or returns an error. This was caused by the mclust package update from version 4.4 to 5.0. Until this is corrected in mclust, a workaround is to install mclust 4.4 instead. This can be done in several ways per the general instructions <a href="http://stackoverflow.com/questions/17082341/installing-older-version-of-r-package">here</a>.<br><br>
+                        </td>
+                     </tr>
+                    <tr class="rowA">
                         <td>329</td>
                         <td>Add following line at beginning of first code block:<br><br>
                         <pre>seg.rf.class <- predict(seg.rf, seg.df.test)</pre><br>
                             (for print only; the available <a href="code.html" accesskey="3" title="">.R file</a> is correct)
                         </td>
-                    </tr>
+                    </tr>                    
+                    
+                    
+                    
+                    
                 </table>
                 
                 <h3>Bug reports</h3>
