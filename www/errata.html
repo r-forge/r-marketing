@@ -39,7 +39,7 @@
 			<div id="primaryContent">
                 <h2>Errata</h2>
                  <p><b>General note</b>. R packages often change their computation algorithms, function names, and requirements. <strong>If your code doesn't work or the output doesn't match what is shown in the book</strong>, see <b>Section 1.5.4</b> in the book for notes and ideas.</p>
-                <h3>Specific errata</h3>
+                <h3>Specific errata and package update notes</h3>
                 
                 <table>
                     <tr>
@@ -63,7 +63,11 @@ for (i in seq_along(i.seq) { print (i) } #better
                     </tr>
                    <tr class="rowB">
                        <td>314</td>
-                        <td>The call to Mclust() hangs or returns an error. This was caused by the mclust package update from version 4.4 to 5.0. Until this is corrected in mclust, a workaround is to install mclust 4.4 instead. This can be done in several ways per the general instructions <a href="http://stackoverflow.com/questions/17082341/installing-older-version-of-r-package">here</a>.
+                        <td>The call to Mclust() hangs or returns an error. This was caused by changes in the mclust package update from version 4.4 to 5.0. There are two possible workarounds:<br><br>(1) to match the book, install mclust 4.4 instead. This can be done in several ways per the general instructions <a href="http://stackoverflow.com/questions/17082341/installing-older-version-of-r-package">here</a>.<br><br>
+                            For example, on Mac or Linux, this can be done as follows:<br><br><pre>
+old.mc <- "https://cran.r-project.org/src/contrib/Archive/mclust/mclust_4.4.tar.gz"
+install.packages(old.mc, repos=NULL, type="source")</pre><br>
+                            (2) alternatively, to use mclust v5 (but obtain results that differ from those in the book), add the following line before calling mclust(): <br><br><pre>mclust.options(hcUse = "SVD")</pre>
                         </td>
                      </tr>
                     <tr class="rowA">
