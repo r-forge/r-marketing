@@ -196,6 +196,7 @@ a:hover
 #content table td
 {
 	padding: 0.5em;
+    vertical-align: top;
 }
 
 #content table tr.rowA
