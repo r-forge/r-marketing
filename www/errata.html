@@ -78,6 +78,11 @@ install.packages(old.mc, repos=NULL, type="source")</pre><br>
                         </td>
                     </tr>                    
                     
+                   <tr class="rowB">
+                       <td>384</td>
+                        <td>The output of "summary(m1.hier)" shows negative estimates for sd.seat7 and sd.price, which is incorrect because variance cannot be negative. The negative sign is an artifact of the estimation routine that mlogit() uses (as of Oct 30, 2015). The command "stdev(m1.hier)" is another way to check the estimates of standard errors for the population distribution, and this correctly reports them all as positive.
+                        </td>
+                     </tr>
                     
                     
                     
