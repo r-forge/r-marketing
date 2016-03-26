@@ -1,0 +1,512 @@
+20/801
+20/300*25000
+25000-20/300*25000
+3000/52 * 6
+library(gdata)
+gcp.raw1 <- read.xls("~/Downloads/Cloud-Dev1-AndroidGenPop-Screen.xls", sheet=3,
+stringsAsFactors=FALSE)   #
+gcp.raw2 <- read.xls("~/Downloads/Cloud-Dev5-DesktopScreen0.xls", sheet=3,
+stringsAsFactors=FALSE)   #
+gcp.raw2 <- read.xls("~/Downloads/Cloud-Dev5-DesktopGenPop-Screen0.xls", sheet=3,
+stringsAsFactors=FALSE)   #
+gcp.raw2$Source <- "Desktop"
+gcp.raw2$Screened <- "No"
+str(gcp.raw2)
+names(gcp.raw2)
+keep.cols <- c(3:8, 11:57)
+gcp.clean <- gcp.raw2[ , keep.cols]
+names(gcp.clean)
+tmp.names <- names(gcp.clean)
+tmp.names <- gsub("Question\\.\\.7\\.Answer\\.[[:digit:]]\\.", "using", tmp.names)  # replace Q10 items with "using ..."
+tmp.names <- gsub("Question\\.\\.8\\.Answer\\.[[:digit:]]\\.", "code", tmp.names)  # replace Q10 items with "using ..."
+tmp.names <- gsub("Question\\.\\.[[:digit:]]\\.Answer\\.[[:digit:]]\\.", "cloudis", tmp.names)  # replace all other "Questions" with "cloudis"
+names(gcp.clean)
+tmp.names[7]  <- "role"
+tmp.names[8]  <- "cloud.leader"
+tmp.names[14] <- "cloudis.os.none"
+tmp.names[15] <- "amzn.rawtext"
+tmp.names[16] <- "cloudis.AmznMarket"
+tmp.names[18] <- "cloudis.Elastic.."
+tmp.names[19] <- "cloudis.KindlePub"
+tmp.names[28] <- "using.AWS"
+tmp.names[29] <- "using.GCP"
+tmp.names[21] <- "cloudis.amzn.none"
+tmp.names[27] <- "cloudis.goog.none"
+tmp.names[34] <- "using.none"
+tmp.names[38] <- "code.HTML.etc"
+tmp.names[39] <- "code.C.CPP"
+tmp.names[40] <- "code.none"
+tmp.names[41] <- "code.other.text"
+tmp.names[42] <- "work.status"
+cbind(tmp.names, names(gcp.clean))
+names(gcp.clean) <- tmp.names
+## set factors correctly
+factor.cols <- c(1:14, 16:40, 42)
+gcp.clean[ , factor.cols] <- lapply(gcp.clean[ , factor.cols], factor)
+str(gcp.clean)
+gcp.lead <- with(gcp.clean, prop.table(table(role, cloud.leader), margin=1))
+library(gplots)
+heatmap.2(as.matrix(gcp.lead)*100,
+Rowv=TRUE, Colv=TRUE, dendrogram="none",
+col=colorRampPalette(c("darkred", "red", "white", "green3", "forestgreen"))(20),
+bg="transparent",
+trace="none", key=FALSE,
+symbreaks=TRUE,
+cellnote=round(as.matrix(gcp.lead)*100,0), notecol="grey20",
+notecex=0.7,
+margins = c(8, 14), cexRow=0.90,
+density.info="none"
+)
+# determine who claims to be IT and Cloud users
+gcp.claim.it <- gcp.clean$role!="No, I don't work in these IT roles"
+as.numeric(summary(gcp.claim.it)["TRUE"])/length(gcp.claim.it)
+tmp.df <- data.frame(summary(gcp.clean$role[gcp.clean$Screened=="No"])/length(gcp.clean$role[gcp.clean$Screened=="No"]))
+dimnames(tmp.df)[[2]] <- "Proportion"
+kable(tmp.df)
+library(knitr)
+kable(tmp.df)
+# how many say they're using each platform
+# overall
+platform.cols <- 28:33
+tmp.df1 <- t(data.frame(lapply(gcp.clean[ , platform.cols ], function(x) (summary(x) / length(x))[2])))
+dimnames(tmp.df1)[[2]] <- "Unscreened"
+library(knitr)
+kable(tmp.df1)
+# Claim IT
+tmp.df2 <- t(data.frame(lapply(gcp.clean[gcp.claim.it  , platform.cols ], function(x) (summary(x) / length(x))[2])))
+dimnames(tmp.df2)[[2]] <- "Claim IT"
+kable(tmp.df2)
+# IT and claiming cloud
+gcp.claim.cloud <- apply(gcp.clean[ , platform.cols], 1, function(x) sum(as.character(x)>" "))
+tmp.df3 <- t(data.frame(lapply(gcp.clean[gcp.claim.it & (gcp.claim.cloud > 0) , platform.cols ], function(x) (summary(x) / length(x))[2])))
+dimnames(tmp.df3)[[2]] <- "IT & Cloud"
+kable(tmp.df3)
+tmp.df4 <- cbind(tmp.df1, tmp.df2, tmp.df3)
+kable(tmp.df4)
+### open end text analysis
+gcp.text.summary <- function(textin, n=10) {
+idk.list <- c("i don't know", "don't know", "idk", "no idea", "not sure", "no clue", "do not know", "unknown", "dunno", "unsure", "na")
+for (i in seq_along(idk.list)) {
+textin <- gsub(idk.list[i], "don't know", textin)
+}
+return(kable(data.frame(Proportion=head(summary(as.factor(textin)) / length(textin), n))))
+}
+gcp.text.summary(gcp.clean$amzn.rawtext)
+kable(data.frame(Proportion=head(summary(as.factor(gcp.clean$amzn.rawtext)) / length(gcp.clean$amzn.rawtext), 10)))
+### score text open ends
+###
+gcp.text.score <- function(textraw, matchlist) {
+textdata <- gsub("[[:punct:]]", "", textraw)
+# textdata <- tolower(textdata)     ### fails for multibyte encoding
+tmp.score <- rep(FALSE, length(textdata))
+for (i in seq_along(matchlist)) {
+tmp.score <- (tmp.score | grepl(matchlist[i], textdata, ignore.case=TRUE))
+}
+return(tmp.score)
+}
+amzn.passlist <- c("aws", "amazon web service", "elastic", "ec2", "ec3", "s3", "ecs")
+gcp.amzn.score <- gcp.text.score(gcp.clean$amzn.rawtext, amzn.passlist)
+round(as.numeric(summary(gcp.amzn.score)["TRUE"]) / length(gcp.amzn.score) * 100)
+# compile scores to DF for convenience
+gcp.text.scores <- data.frame(amzn.text=gcp.amzn.score)
+gcp.clean <- cbind(gcp.clean, gcp.text.scores)
+str(gcp.clean)
+summary(gcp.clean$amzn.text)
+# all respondents
+with(gcp.clean                , prop.table(table(amzn.text)))
+# self-report IT
+with(gcp.clean[gcp.claim.it, ], prop.table(table(amzn.text)))
+# IT and Cloud
+with(gcp.clean[gcp.claim.it & gcp.claim.cloud, ], prop.table(table(amzn.text)))
+# Coding
+with(gcp.clean[gcp.clean$role=="Yes, I work in software development", ], prop.table(table(amzn.text)))
+###
+###
+### analysis of scores
+# knowledge key
+gcp.answer.key <- c(0, 1, 0, 1, 1, 0,   # OS
+0, 1, 1, 0, 1, 0,   # Amazon
+0, 1, 1, 1, 0, 0)   # Google
+# gcp.score <- apply(gcp.raw[ , 16:39], 1,
+#                   function(x) { sum(as.numeric(x)-1 == gcp.answer.key) } )
+gcp.score.cols <- c(9:14, 16:27)
+gcp.score <- rep(NA, nrow(gcp.clean))
+for (i in seq_along(gcp.clean[, 1])) { gcp.score[i] <- sum(as.numeric(gcp.clean[i, gcp.score.cols])-1 == gcp.answer.key) }
+summary(gcp.score)
+gcp.clean$score <- gcp.score
+### commonly missed questions
+for (i in seq_along(gcp.answer.key)) {
+cat(names(gcp.clean)[gcp.score.cols[i]], '=', mean(as.numeric(gcp.clean[ , gcp.score.cols[i]])-1 != gcp.answer.key[i]),'\n')
+}
+### scores by what they say they're using
+# mean score by IT
+aggregate(gcp.score, list(gcp.claim.it), mean)
+# mean score by # services
+aggregate(gcp.score[gcp.claim.it], list(gcp.claim.cloud[gcp.claim.it]), mean)
+# breakdown by what they say they're using, IT folks only
+lapply(gcp.clean[gcp.claim.it , platform.cols], function (x) aggregate(gcp.score[gcp.claim.it], list(x), mean)[2, 2])
+###
+### plotting for scores === ECDFs
+###
+amzn.cols <- 16:20
+amzn.score4 <- rep(NA, nrow(gcp.clean))
+for (i in seq_along(gcp.clean[, 1])) { amzn.score4[i] <- (sum(as.numeric(gcp.clean[i, amzn.cols])-1 == c(0,1,1,0,1))>= 4) }
+summary(amzn.score4)
+goog.cols <- 22:26
+goog.score4 <- rep(NA, nrow(gcp.clean))
+for (i in seq_along(gcp.clean[, 1])) { goog.score4[i] <- (sum(as.numeric(gcp.clean[i, goog.cols])-1 == c(0,1,1,1,0))>= 4) }
+summary(goog.score4)
+print(with(gcp.clean, prop.table(table(amzn.text))), digits=2)
+print(with(gcp.clean[gcp.claim.it, ], prop.table(table(amzn.text))), digits=2)
+gcp.screened <- gcp.claim.it
+paste0(round(mean(gcp.screened)*1000) / 1000 * 100,"%")
+gcp.screened <- gcp.screened & (gcp.clean$score >= 12)
+paste0(round(mean(gcp.screened)*1000) / 1000 * 100,"%")
+gcp.screened <- gcp.screened & gcp.clean$cloud.leader=="Amazon"
+paste0(round(mean(gcp.screened)*1000) / 1000 * 100,"%")
+gcp.screened <- gcp.screened & ((as.character(gcp.clean[,"using.AWS"]) > " ") |
+(as.character(gcp.clean[,"using.GCP"]) > " ") |
+(as.character(gcp.clean[,"using.IBM.Cloud.Services"]) > " ") |
+(as.character(gcp.clean[,"using.Rackspace"]) > " ") |
+(as.character(gcp.clean[,"using.SalesForce"]) > " ") |
+(as.character(gcp.clean[,"using.Microsoft.Azure"]) > " ") )
+paste0(round(mean(gcp.screened)*1000) / 1000 * 100,"%")
+gcp.screened <- gcp.screened & (ifelse(as.character(gcp.clean[,"using.AWS"]) > " ",
+amzn.score4, TRUE))
+paste0(round(mean(gcp.screened)*1000) / 1000 * 100,"%")
+gcp.screened <- gcp.screened & (ifelse(as.character(gcp.clean[,"using.GCP"]) > " ",
+goog.score4, TRUE))
+paste0(round(mean(gcp.screened)*1000) / 1000 * 100,"%")
+with(gcp.clean[gcp.screened, ], prop.table(table(amzn.text)))
+lang.aws <- sapply(gcp.clean[gcp.screened & gcp.clean$using.AWS=="Amazon Web Services", 35:40], function(x) prop.table(table(x))[2])
+lang.goog <- sapply(gcp.clean[gcp.screened & gcp.clean$using.GCP=="Google Cloud Platform", 35:40], function(x) prop.table(table(x))[2])
+lang.msft <- sapply(gcp.clean[gcp.screened & gcp.clean$using.Microsoft.Azure=="Microsoft Azure", 35:40], function(x) prop.table(table(x))[2])
+cbind(lang.aws, lang.goog, lang.msft)
+names(gcp.clean)
+table(gcp.screened)
+table(gcp.clean[gcp.screened, 8])
+gcp.screened <- gcp.claim.it
+paste0(round(mean(gcp.screened)*1000) / 1000 * 100,"%")
+gcp.screened <- gcp.screened & (gcp.clean$score >= 12)
+paste0(round(mean(gcp.screened)*1000) / 1000 * 100,"%")
+gcp.screened <- gcp.screened & ((as.character(gcp.clean[,"using.AWS"]) > " ") |
+(as.character(gcp.clean[,"using.GCP"]) > " ") |
+(as.character(gcp.clean[,"using.IBM.Cloud.Services"]) > " ") |
+(as.character(gcp.clean[,"using.Rackspace"]) > " ") |
+(as.character(gcp.clean[,"using.SalesForce"]) > " ") |
+(as.character(gcp.clean[,"using.Microsoft.Azure"]) > " ") )
+paste0(round(mean(gcp.screened)*1000) / 1000 * 100,"%")
+gcp.screened <- gcp.screened & (ifelse(as.character(gcp.clean[,"using.AWS"]) > " ",
+amzn.score4, TRUE))
+paste0(round(mean(gcp.screened)*1000) / 1000 * 100,"%")
+gcp.screened <- gcp.screened & (ifelse(as.character(gcp.clean[,"using.GCP"]) > " ",
+goog.score4, TRUE))
+paste0(round(mean(gcp.screened)*1000) / 1000 * 100,"%")
+table(gcp.clean[gcp.screened, 8])
+sum(table(gcp.clean[gcp.screened, 8]))
+97/208
+sum(table(gcp.clean[gcp.screened, "amzn.text"]))
+table(gcp.clean[gcp.screened, "amzn.text"])
+table(gcp.clean[gcp.screened, "amzn.rawtext"])
+gcp.screened0 <- gcp.screened
+gcp.screened <- gcp.screened & gcp.clean$cloud.leader=="Amazon"
+paste0(round(mean(gcp.screened)*1000) / 1000 * 100,"%")
+sum(table(gcp.clean[gcp.screened, 8]))
+gcp.screened0 <- gcp.screened0 & !gcp.screened
+table(gcp.screened0)
+table(gcp.screened, gcp.clean$amzn.text)
+table(gcp.screened0, gcp.clean$amzn.text)
+prop.table(table(gcp.screened0, gcp.clean$amzn.text), margin=1)
+prop.table(table(gcp.screened, gcp.clean$amzn.text), margin=1)
+table(gcp.screened0, gcp.clean$amzn.text)
+table(gcp.screened0, gcp.clean$amzn.rawtext)
+table(gcp.clean$amzn.rawtext[gcp.screened0])
+sort(table(gcp.clean$amzn.rawtext[gcp.screened0]))
+30500 * 6
+3965*6
+(2757+200)*6
+5100+765+469
+install.packages("Rcmdr")
+library("Rcmdr")
+satData <- read.csv("http://r-marketing.r-forge.r-project.org/data/rintro-chapter2.csv")
+str(satData)
+semPaths(sat.fit, what="est", nCharNodes=9, residuals=FALSE)
+library(lavaan)
+sat.fit <- cfa(satModel, data=satData)
+satModel <- "SAT =~ iProdSAT + iSalesSAT
+REC =~ iProdREC + iSalesREC
+REC ~  SAT "
+# fit the structural model
+library(lavaan)
+sat.fit <- cfa(satModel, data=satData)
+# plot the structural model
+library(semPlot)
+semPaths(sat.fit, what="est", nCharNodes=9, residuals=FALSE)
+str(satData)
+summary(satData)
+satData$Segment <- factor(satData$Segment)
+summary(satData)
+by(satData$iProdSAT, satData$Segment, quantile)
+fivenum
+by(satData$iProdSAT, satData$Segment, fivenum)
+library(corrplot)
+corrplot(satData[ , -3])
+corrplot(cor(satData[ , -3]))
+?"corrplot"
+corrplot.mixed(cor(satData[ , -3]))
+?aggregate
+prod.sat.seg <- aggregate(satData$iProdSAT, satData$Segment, quantile)
+prod.sat.seg <- aggregate(satData$iProdSAT, list(satData$Segment), quantile)
+prod.sat.seg
+p <- ggplot(data=prod.sat.seg,
+aes(x=Group.1, y=x.50%, ymax=x.75%, ymin=x.25%))
+names(prod.sat.seg) <- c("Segment", "pct0", "pct25", "pct50", "pct75", "pct100")
+names(prod.sat.seg)
+prod.sat.seg <- aggregate(satData$iProdSAT, list(satData$Segment), quantile)
+prod.sat.seg
+names(prod.sat.seg)
+str(prod.sat.seg)
+aggregate(satData$iProdSAT, list(satData$Segment), quantile)
+unlist(aggregate(satData$iProdSAT, list(satData$Segment), quantile))
+(aggregate(satData$iProdSAT, list(satData$Segment), unlist(quantile)))
+str(aggregate(satData$iProdSAT, list(satData$Segment), unlist(quantile)))
+cbind(prod.sat.seg$Group.1, prod.sat.seg$x)
+prod.sat.seg <- cbind(prod.sat.seg$Group.1, prod.sat.seg$x)
+names(prod.sat.seg) <- c("Segment", "pct0", "pct25", "pct50", "pct75", "pct100")
+prod.sat.seg
+prod.sat.seg <- aggregate(satData$iProdSAT, list(satData$Segment), quantile)
+str(prod.sat.seg)
+prod.sat.seg <- cbind(prod.sat.seg$Group.1, prod.sat.seg$x)
+str(prod.sat.seg)
+colnames(prod.sat.seg)
+prod.sat.seg <- aggregate(satData$iProdSAT, list(satData$Segment), quantile)
+str(prod.sat.seg)
+prod.sat.seg <- data.frame(prod.sat.seg$Group.1, prod.sat.seg$x)
+str(prod.sat.seg)
+names(prod.sat.seg) <- c("Segment", "pct0", "pct25", "pct50", "pct75", "pct100")
+prod.sat.seg
+prod.sat.seg <- aggregate(satData$iProdSAT, list(satData$Segment), quantile)
+str(prod.sat.seg)
+prod.sat.seg <- data.frame(prod.sat.seg$Group.1, prod.sat.seg$x)
+prod.sat.seg
+names(prod.sat.seg) <- c("Segment", "pct0", "pct25", "pct50", "pct75", "pct100")
+prod.sat.seg
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=pct50, ymax=pct75, ymin=pct25))
+library(ggplot2)
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=pct50, ymax=pct75, ymin=pct25))
+p
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=pct50, ymax=pct75, ymin=pct25)) +
+geom_point() +
+geom_errorbar()
+p
+library(ggplot2)
+by(satData$iProdSAT, satData$Segment, mean_se)
+prod.sat.seg <- aggregate(satData$iProdSAT, list(satData$Segment), mean_se)
+str(prod.sat.seg)
+prod.sat.seg <- data.frame(prod.sat.seg$Group.1, prod.sat.seg$x)
+prod.sat.seg
+names(prod.sat.seg) <- c("Segment", "mean", "lowerCI", "upperCI")
+prod.sat.seg
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=mean, ymax=upperCI, ymin=lowerCI)) +
+geom_point() +
+geom_errorbar()
+p
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=mean, ymax=upperCI, ymin=lowerCI)) +
+geom_point(y=y) +
+geom_errorbar()
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=mean, ymax=upperCI, ymin=lowerCI)) +
+geom_point(y=mean) +
+geom_errorbar()
+p
+prod.sat.seg
+names(prod.sat.seg) <- c("Segment", "average", "lowerCI", "upperCI")
+prod.sat.seg
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=average, ymax=upperCI, ymin=lowerCI)) +
+geom_point() +
+geom_errorbar()
+p
+str(prod.sat.seg)
+prod.sat.seg <- aggregate(satData$iProdSAT, list(satData$Segment), mean_se)
+str(prod.sat.seg)
+data.frame(prod.sat.seg$Group.1, unlist(prod.sat.seg$x))
+str(prod.sat.seg)
+data.frame(prod.sat.seg$x)
+str(data.frame(prod.sat.seg$x))
+?mean_se
+by(satData$iProdSAT, satData$Segment, stat_summary)
+by(satData$iProdSAT, satData$Segment, mean_se, mult=1.96)
+by(satData$iProdSAT, satData$Segment, mean_se, mult=1)
+by(satData$iProdSAT, satData$Segment, mean_se, mult=1.96)
+prod.sat.seg <- aggregate(satData$iProdSAT, list(satData$Segment), mean_se, mult=1.96)
+str(prod.sat.seg)
+data.frame(prod.sat.seg$x)
+data.frame(prod.sat.seg$Group.1, data.frame(prod.sat.seg$x))
+str(data.frame(prod.sat.seg$Group.1, data.frame(prod.sat.seg$x)))
+data.frame(prod.sat.seg$Group.1, as.data.frame(prod.sat.seg$x))
+str(data.frame(prod.sat.seg$Group.1, as.data.frame(prod.sat.seg$x)))
+data.frame(prod.sat.seg$Group.1, unlist(prod.sat.seg$x))
+data.frame(prod.sat.seg$Group.1, unlist(prod.sat.seg$x), nrow=4)
+as.matrix(prod.sat.seg$x, nrow=4)
+data.frame(prod.sat.seg$Group.1, as.matrix(prod.sat.seg$x, nrow=4))
+str(data.frame(prod.sat.seg$Group.1, as.matrix(prod.sat.seg$x, nrow=4)))
+cbind(prod.sat.seg$Group.1, as.matrix(prod.sat.seg$x, nrow=4)
+)
+str(cbind(prod.sat.seg$Group.1, as.matrix(prod.sat.seg$x, nrow=4)))
+data.frame(cbind(prod.sat.seg$Group.1, as.matrix(prod.sat.seg$x, nrow=4)))
+str(data.frame(cbind(prod.sat.seg$Group.1, as.matrix(prod.sat.seg$x, nrow=4))))
+?data.frame
+prod.sat.seg$x
+as.data.frame(prod.sat.seg$x)
+str(as.data.frame(prod.sat.seg$x))
+str(as.data.frame(prod.sat.seg$x))
+str(lapply(as.data.frame(prod.sat.seg$x), unlist))
+data.frame(lapply(as.data.frame(prod.sat.seg$x), unlist))
+str(data.frame(lapply(as.data.frame(prod.sat.seg$x), unlist)))
+data.frame(prod.sat.seg$Group.1, lapply(data.frame(prod.sat.seg$x), unlist))
+str(data.frame(prod.sat.seg$Group.1, lapply(data.frame(prod.sat.seg$x), unlist)))
+prod.sat.seg <- data.frame(prod.sat.seg$Group.1, lapply(data.frame(prod.sat.seg$x), unlist))
+prod.sat.seg
+names(prod.sat.seg) <- c("Segment", "average", "lowerCI", "upperCI")
+prod.sat.seg
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=average, ymax=upperCI, ymin=lowerCI)) +
+geom_point() +
+geom_errorbar()
+p
+p <- p + geom_point(color=Segment, size=3)
+p
+p <- p + geom_point(aes(color=Segment, size=3))
+p
+p <- p + geom_point(aes(color=Segment), size=3)
+p
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=average, ymax=upperCI, ymin=lowerCI)) +
+geom_point() +
+geom_errorbar()
+p
+p <- p + geom_point(aes(color=Segment), size=3)
+p
+p <- p + geom_errorbar(aes(color=Segment), size=3)
+p
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=average, ymax=upperCI, ymin=lowerCI)) +
+geom_point() +
+geom_errorbar()
+p <- p + geom_point(aes(color=Segment), size=3)
+p <- p + geom_errorbar(aes(color=Segment))
+p
+p <- p + geom_errorbar(aes(color=Segment), width=0.5)
+p
+?geom_errorbar
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=average, ymax=upperCI, ymin=lowerCI)) +
+geom_point() +
+geom_errorbar()
+p <- p + geom_point(aes(color=Segment), size=3)
+p <- p + geom_errorbar(aes(color=Segment), width=0.5)
+p
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=average, ymax=upperCI, ymin=lowerCI)) +
+geom_point() +
+geom_errorbar()
+p
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=average, ymax=upperCI, ymin=lowerCI)) +
+geom_point(aes(color=Segment), size=3) +
+geom_errorbar()
+p
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=average, ymax=upperCI, ymin=lowerCI)) +
+geom_point(aes(color=Segment), size=3) +
+geom_errorbar(aes(color=Segment), width=0.3)      # <=======
+p
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=average, ymax=upperCI, ymin=lowerCI)) +
+geom_point(aes(color=Segment), size=3) +
+geom_errorbar(aes(color=Segment), width=0.3) +
+ggtitle("Average Sat and Confidence Interval by Segment") +    # <=====
+ylab("Mean satisfaction and 95% CI")
+p
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=average, ymax=upperCI, ymin=lowerCI)) +
+geom_point(aes(color=Segment), size=3) +
+geom_errorbar(aes(color=Segment), width=0.3) +
+ggtitle("Average Sat and Confidence Interval by Segment") +    # <=====
+ylab("Mean satisfaction and 95% CI") +
+coord_cartesian(ylim=c(1, 5))
+p
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=average, ymax=upperCI, ymin=lowerCI)) +
+geom_point(aes(color=Segment), size=3) +
+geom_errorbar(aes(color=Segment), width=0.3) +
+coord_cartesian(ylim=c(1, 5))    # <========
+p
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=average, ymax=upperCI, ymin=lowerCI)) +
+geom_point(aes(color=Segment), size=3) +
+geom_errorbar(aes(color=Segment), width=0.3) +
+coord_cartesian(ylim=c(1, 5)) +
+ggtitle("Average Sat and Confidence Interval by Segment") +    # <=====
+ylab("Mean satisfaction and 95% CI") +
+p
+p <- ggplot(data=prod.sat.seg,
+aes(x=Segment, y=average, ymax=upperCI, ymin=lowerCI)) +
+geom_point(aes(color=Segment), size=3) +
+geom_errorbar(aes(color=Segment), width=0.3) +
+coord_cartesian(ylim=c(1, 5)) +
+ggtitle("Average Sat and Confidence Interval by Segment") +    # <=====
+ylab("Mean satisfaction and 95% CI")
+p
+satData <- read.csv("http://r-marketing.r-forge.r-project.org/data/rintro-chapter2.csv")
+# examine the data
+str(satData)
+head(satData)
+str(satData)
+summary(satData)
+satData$Segment <- factor(satData$Segment)
+summary(satData)
+# Satisfaction by segment
+library(ggplot2)
+by(satData$iProdSAT, satData$Segment, mean_se, mult=1.96)
+# first aggregate the data we want to plot
+# there are other ways to do this, but this illustrates data frame manipulation
+satModel <- "SAT =~ iProdSAT + iSalesSAT
+REC =~ iProdREC + iSalesREC
+REC ~  SAT "
+# fit the structural model
+library(lavaan)
+sat.fit <- cfa(satModel, data=satData)
+# plot the structural model
+library(semPlot)
+semPaths(sat.fit, what="est", nCharNodes=9, residuals=FALSE)
+sem.fit
+sat.fit
+summary(sat.fit)
+?cfa
+summary(sat.fit, fit.measures=TRUE)
+library(semPlot)
+semPaths(sat.fit, what="est", nCharNodes=9, residuals=FALSE)
+summary(sat.fit)6/226
+6/226
+gcs.satT2.raw <- read.csv(paste0("~/Documents/Chris Documents/Work/Cloud",
+"/gcs-surveys/tools/",
+"Cloud-Lang2-Mobile-Screen1 Jan 2016.csv"))
+gcs.satT2.raw <- read.csv(paste0("~/Documents/Chris Documents/Work/Cloud",
+"/gcs-surveys/tools/jan2016/",
+"Cloud-Lang2-Mobile-Screen1 Jan 2016.csv"))
+gcs.satT2.raw <- read.csv(paste0("~/Documents/Chris Documents/Work/Cloud",
+"/gcs-surveys/tools/jan2016/",
+"Cloud-Lang2-Mobile-Screen1 Jan 2016.xls"))
+library(gdata)
+gcs.satT2.raw <- read.xls(paste0("~/Documents/Chris Documents/Work/Cloud",
+"/gcs-surveys/tools/jan2016/",
+"Cloud-Lang2-Mobile-Screen1 Jan 2016.xls"))
+install.packages(c("ape", "arules", "BH", "car", "coda", "curl", "devtools", "DiagrammeR", "digest", "doParallel", "effects", "fields", "foreach", "ggplot2", "git2r", "Hmisc", "htmltools", "irlba", "iterators", "jsonlite", "knitr", "lavaan", "lme4", "maps", "Matching", "maxLik", "mclust", "multcomp", "mvtnorm", "pbapply", "pbkrtest", "qgraph", "R6", "Rcpp", "RcppEigen", "rmarkdown", "rms", "roxygen2", "rstudioapi", "sandwich", "statmod", "stringi", "V8", "vcdExtra", "VGAM", "visNetwork", "xtable", "Zelig", "ZeligChoice"))
+install.packages(c("class", "foreign", "MASS", "Matrix", "mgcv", "nlme", "nnet", "spatial"), lib="/Library/Frameworks/R.framework/Versions/3.2/Resources/library")

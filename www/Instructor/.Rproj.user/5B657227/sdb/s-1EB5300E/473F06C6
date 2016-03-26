@@ -1,0 +1,18 @@
+{
+    "contents" : "# power test for binomial\nlibrary(pwr)\npwr.p.test(sig.level=0.05, power=.8, h = ES.h(.35, 0.30), alt=\"greater\", n = NULL)\n\n\n\nq1mu <- 2.42\nq2mu <- 2.27\nq4mu <- 2.15\nn.qs <- 400\n\nq1norm <- floor(rnorm(n.qs, mean=q1mu))\nq2norm <- floor(rnorm(n.qs, mean=q2mu))\nq4norm <- floor(rnorm(n.qs, mean=q4mu))\n\nt.test(q1norm, q2norm)\nt.test(q2norm, q4norm)\nt.test(q1norm, q4norm)\n\nwilcox.test(q1norm, q2norm)\nwilcox.test(q2norm, q4norm)\nwilcox.test(q1norm, q4norm)\n\nset.seed(98103)\nx1 <- scale(rnorm(100))\nx2 <- scale(rnorm(100))\ny <- x1 + x2 + x1*x2 + rnorm(100)\n\n(x1a <- x1 + 10)\n(x2a <- x2 + 10)\n\nsummary(lm(y ~ x1 + x2 + x1*x2))\nsummary(lm(y ~ x1a + x2a + x1a*x2a))\n\nsummary(lm(y ~ x1 + x2))\nsummary(lm(y ~ x1a + x2a))\n\nx12 <- scale(x1*x2)\nx12a <- x12+10\n\nsummary(lm(y ~ x1 + x2 + x12))\nsummary(lm(y ~ x1a + x2a + x12a))\n\n\n\n\n\n########\n\nthree.boot <- function(count.data, count.levels=NA,\n                       boot.k=1000, big.mult=10000000/sum(count.data), \n                       alpha=0.05, silent=FALSE, samp.k=sum(count.data)) {\n  if (length(count.levels) == 1 && is.na(count.levels)) {\n    count.levels <- 1:length(count.data)\n  }\n  bigData <- rep(count.levels, times=count.data*big.mult)\n  table(bigData)\n  \n  boot.out <- matrix(NA, nrow=boot.k, ncol=3)\n  \n  if (boot.k > 100 && !silent) {\n    cat(\"Bootstrapping \")\n  }\n  \n  for (i in 1:boot.k) {\n    if (!silent && i %% 100 == 0) {\n      cat(\".\")\n    }\n    boot.samp <- sample(bigData, samp.k)\n    boot.p <- prop.table(table(factor(boot.samp, levels=count.levels)))\n    # top 2 box\n    boot.out[i, 1] <- as.numeric(boot.p[5]) + as.numeric(boot.p[4])\n    # top 2 box\n    boot.out[i, 2] <- as.numeric(boot.p[5])\n    # pseudo NPS\n    boot.out[i, 3] <- as.numeric(boot.p[5]) - as.numeric(boot.p[3]) - as.numeric(boot.p[2]) - as.numeric(boot.p[1])\n  }\n  \n  if (boot.k > 100 && !silent) {\n    cat(\" done.\\n\\n\")\n  }\n  \n  return(t(apply(boot.out, 2, \n                 function(x) quantile(x, probs=c(alpha/2, 0.5, 1-alpha/2)))))\n}\n\nsat <- c(10, 5, 20, 5, 25)\n\nthree.boot(sat)\n\n\n",
+    "created" : 1448739236488.000,
+    "dirty" : true,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "2095785966",
+    "id" : "473F06C6",
+    "lastKnownWriteTime" : 4319588032,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "type" : "r_source"
+}

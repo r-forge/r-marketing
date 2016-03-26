@@ -1,0 +1,63 @@
+R for Marketing Research and Analytics
+========================================================
+**Chapter 1**  
+
+Chris Chapman and Elea McDonnell Feit  
+July 2015
+
+Website for all data files:  
+[http://r-marketing.r-forge.r-project.org/data.html](http://r-marketing.r-forge.r-project.org/data.html)
+
+
+Why R?
+========================================================
+
+For more details on authoring R presentations click the
+**Help** button on the toolbar.
+
+- Bullet 1
+- Bullet 2
+- Bullet 3
+
+
+
+
+
+
+
+
+
+
+
+
+
+Template slides follow, for copy & paste
+========================================================
+type: alert
+
+
+Bullet slide
+========================================================
+
+For more details on authoring R presentations click the
+**Help** button on the toolbar.
+
+- Bullet 1
+- Bullet 2
+- Bullet 3
+
+
+Slide With Code
+========================================================
+
+```{r}
+summary(cars)
+```
+
+
+Slide With Plot
+========================================================
+
+```{r, echo=FALSE}
+plot(cars)
+```

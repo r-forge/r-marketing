@@ -1,0 +1,439 @@
+R for Marketing Research and Analytics
+========================================================
+Author: Chris Chapman and Elea McDonnell Feit
+Date: February 2016
+css: ../chapman-feit-slides.css
+width: 1024
+height: 768
+
+**Chapter 7: Identifying Drivers of Outcomes: Linear Models**  
+
+Website for all data files:  
+[http://r-marketing.r-forge.r-project.org/data.html](http://r-marketing.r-forge.r-project.org/data.html)
+
+
+Satisfaction survey data
+========================================================
+
+Data represents customer responses to a survey about their satisfaction with diferent aspects of their recent visit to an amusement park.
+![](hersheypark.jpg)  
+<small>
+Image source: hersheypark.com 
+</small>
+
+To load the data:
+```{r}
+sat.df <- read.csv("http://goo.gl/HKnl74")
+```
+
+Inspecting the data
+========================================================
+```{r}
+summary(sat.df)
+```
+`weekend`: was the visit on a weekend  
+`num.child`: how may children were in the party  
+`distance`: how far did the party travel to the park  
+`rides`, `games`, `wait`, `clean`, `overall`: satisfaction ratings
+
+Fitting a linear model with lm()
+========================================================
+type: section
+
+* We'll cover how to fit a linear model, i.e. a linear regression, using the `lm()` function in R. Linear models relate one or more **predictors** (independant variables) to an **outcome** (dependant variables). 
+
+* Key steps in linear modeling:
+  + Evaluate the data for suitability for modeling
+  + Fit model
+  + Evaluate the model
+  + Interpret 
+  
+Plotting the data
+=======================================================
+A **scatterplot matrix** can help you quickly visualize the relationships between pairs of variables in the data. **Skewness** of predictors or **correlations** between predictors are potential problems. 
+```{r}
+library(gpairs)
+gpairs(sat.df)
+```  
+ 
+
+Transforming some variables
+=======================================================
+```{r}
+hist(sat.df$distance)
+```  
+
+***
+
+```{r}
+sat.df$logdist <- log(sat.df$distance)
+hist(sat.df$logdist)
+```
+
+corrplot: an alternative to the scatterplot matrix
+=======================================================
+```{r}
+library(corrplot)
+corrplot.mixed(cor(sat.df[ , c(2, 4:9)]), upper="ellipse")
+```
+
+Fitting a model with one predictor
+======================================================
+To fit a model relating the ratings for rides to the overall satisfation rating we use `lm()`. `lm()` uses R's formula notation `overall ~ rides` to indicate that you want a model predicting `overall` as a function of `rides`.  
+```{r}
+lm(overall ~ rides, data=sat.df)
+```
+So, if a visitor gives a rating of 95 for rides, then our prediction for their overall rating is:  
+
+```{r}
+-94.962 + 1.703*95
+```
+
+Model objects
+=====================================================
+Typically, we assign the output of `lm()` to a variable. 
+```{r}
+m1 <- lm(overall ~ rides, data=sat.df)
+str(m1)
+```
+
+A plot of the model
+=====================================================
+Using the model object `m1` we can draw our linear model on a plot. The function `abline()` takes the model object `m1` as input. 
+```{r}
+plot(overall ~ rides, data=sat.df,
+     xlab="Satisfaction with Rides", ylab="Overall Satisfaction")
+abline(m1, col='blue')
+```
+
+Model summary
+=====================================================
+To get a complete report on our model we type:
+```{r}
+summary(m1)
+```
+
+Things you should review in the summary
+====================================================
+* Coefficients
+* Std. Error of the coefficients
+* Significance tests for coefficients
+* Residuals (prediction errors)
+* R-squared
+
+Model assumptions
+=====================================================
+type: alert
+Linear models assume that the relationship between the predictor and the outcome is **linear**. If this is not the case,you may get unexpected results. 
+```{r}
+x <- rnorm(500)
+y <- x^2 + rnorm(500)
+toy.model <- lm(y ~ x)
+summary(toy.model)
+```
+
+Model assumptions
+=====================================================
+type: alert
+A plot will often reveal the violation of linear model assumptions. **So, plot early and often!**
+```{r}
+plot(y ~ x)
+abline(toy.model)
+```
+
+Standard plots for assessing model fit
+======================================================
+Returning to our satisfaction drivers example, we can use R's standard set of plots for assessing model fit and detecting violations of model assumptions. 
+```{r}
+par(mfrow=c(2,2))
+plot(m1)
+```
+
+Inspecting outliers
+======================================================
+We should inspect any outliers to see if there is a problem with the data, such a miscoding or a data entry error.
+```{r}
+sat.df[c(57, 129, 295),]
+```
+**Nothing unusual or surprising here!**
+
+Fitting a model with multiple predictors
+======================================================
+type: section
+What we really want to know is which features of the park are most closely related to overall satisfaction. To do that, we fit a model where all the features of the park are included as predictors.
+
+Fitting a model with multiple predictors
+======================================================
+Fit a model relating `overall` satisfaction to satisfaction with all four features.
+```{r}
+m2 <- lm(overall ~ rides + games + wait + clean, data=sat.df)
+summary(m2)
+```
+
+Intepreting model coefficients
+======================================================
+The model coefficients tell us the association between `rides`, `games`, `wait` and `clean` and `overall` satisfaction. This can help the park come up with strategies to improve overall satisfaction.  
+
+**Note that relationships may not be _causal_.  The model tells us that in the past, customers who were more satisfied overall were also more satisfied with cleanliness. Improving satisfaction with `clean` may not ultimately raise overall satisfaction.**  
+
+In deciding what actions to take to improve satisfaction, the park also needs to consider how easy or hard it would be to change satisfaction with `clean` versus `rides` or `wait`. 
+
+Presenting the findings
+======================================================
+A nice way to visualize the findings from the model is to plot the coefficients, which describe the relationship between each feature and overall satisfaction. 
+```{r}
+# library(coefplot)
+# coefplot(m2, intercept=FALSE, outerCI=1.96, lwdOuter=1.5,
+#          ylab="Rating of Feature", 
+#          xlab="Association with Overall Satisfaction")
+```
+![](coefplot.png)
+
+Comparing two models: R-squared
+=======================================================
+R-squared is a measure of how well the model predicts: 
+```{r}
+summary(m1)$r.squared # single predictor: rides
+summary(m2)$r.squared # multple predictors
+```
+Adjusted R-squared makes an adjustment to account for the fact that models with more predictors will predict better. 
+```{r}
+summary(m1)$adj.r.squared
+summary(m2)$adj.r.squared
+```
+
+Comparing models: visually
+======================================================
+We can compare two models visually. **Plot early, plot often!**
+```{r}
+plot(sat.df$overall, fitted(m1), col='red',
+     xlim=c(0,100), ylim=c(0,100),
+     xlab="Actual Overall Satisfaction", ylab="Fitted Overall Satisfaction")
+points(sat.df$overall, fitted(m2), col='blue')
+legend("topleft", legend=c("model 1", "model 2"), 
+       col=c("red", "blue"), pch=1)
+```
+
+Comparing models: formal statistical test
+=======================================================
+For  **nested** models (the predictors in `m2` includes all the predictors in `m1` plus some additional predictors) there is a formal test of whether the additional variables improve the fit of the model:
+```{r}
+anova(m1, m2)
+```
+
+Making predictions
+======================================================
+You can make a prediction for what overall ratings a customer would give, if she gave 100 ratings for all the park features. 
+```{r}
+coef(m2)["(Intercept)"] + coef(m2)["rides"]*100 + coef(m2)["games"]*100 + 
+  coef(m2)["wait"]*100 + coef(m2)["clean"]*100 
+```
+Or more easily using R's matrix multiplication.
+```{r}
+coef(m2)%*%c(1, 100, 100, 100, 100)
+```
+
+Making predictions
+=====================================================
+Or using the built-in functions. 
+```{r}
+predict(m2, sat.df[1:10, ])  # first 10 observations
+fitted(m2)[1:10]            # same, automatically in model object
+```
+
+Advanced regression topics
+=======================================================
+type: section
+
+Standardizing predictors
+======================================================
+When you want to **comapre** coefficients, it can be helpful to put the predictors on the same scale by **standarding** them.   
+
+You can do that by hand:
+```{r}
+head(sat.df$rides - mean(sat.df$rides)) / sd(sat.df$rides)
+```
+Or using R's built-in function, `scale()`
+```{r}
+head(scale(sat.df$rides))
+```
+
+Standardizing our data
+======================================================
+So that we don't have to worry about scale, we will standardize the whole data set.
+```{r}
+sat.std <- sat.df[ , -3]  # sat but remove distance
+sat.std[ , 3:7] <- scale(sat.std[ , 3:7])
+sat.std$logdist <- log(sat.df$distance)   # add transformed distance
+head(sat.std)
+```
+
+Checking the standardized data
+======================================================
+```{r}
+summary(sat.std)
+```
+
+Don't do this
+=======================================================
+**What is odd about this model?**
+```{r}
+m3 <- lm(overall ~ rides + games + wait + clean + 
+                   weekend + logdist + num.child, data = sat.std)
+summary(m3)
+```
+
+Including a factor predictor
+========================================================
+```{r}
+sat.std$num.child.factor <- factor(sat.std$num.child)
+m4 <- lm(overall ~ rides + games + wait + clean + 
+                   weekend + logdist + num.child.factor, data=sat.std)
+summary(m4)
+```
+
+Simplifying the num.child predictor
+======================================================
+```{r}
+sat.std$has.child <- factor(sat.std$num.child > 0)
+m5 <- lm(overall ~ rides + games + wait + clean + logdist + has.child, 
+         data=sat.std)
+summary(m5)
+```
+
+Interactions between predictors
+======================================================
+An **interaction** between two predictors occurs when the effect of one predictor depends on the value of the other predictor. 
+```{r}
+(m7 <- lm(overall ~ rides + games + wait + clean + logdist + has.child + 
+                   wait:has.child,
+         data=sat.std))
+```
+
+Reporting the coefficients
+=====================================================
+```{r, eval=FALSE}
+library(coefplot)      # NB: recent library problems, using image
+coefplot(m7, intercept=FALSE, outerCI=1.96, lwdOuter=1.5,
+         ylab="Rating of Feature", 
+         xlab="Association with Overall Satisfaction")
+```
+![](coefplot.png)
+
+Advanced formula syntax
+======================================================
+Formulas are used in many R functions and there are many variations on them.
+![](formulas.png)
+
+You can play around with adding or removing interactions, squared predictors and so forth, but be cautious about **overfitting**. 
+
+Steps for model building
+======================================================
+* Examine the data.  Is it what you expect?
+* Check for skewness in variables. Consider `log()` or other tranforms.
+* Plot pairs of variables. If any are highly correlated, consider omitting some predictors. (More in Chapter 9.)
+* If you wish, standardize the variables, do so with `scale()`.
+* Fit the model and check the fit. 
+* Use `plot()` to get standard diagnostic plots and inspect them for model fit and outliers. 
+* Try several different models: add or remove predictors, add interactions, etc. Compare fit using plots, R-squared, or `anova()`.
+* Report the confidence intervals of your coefficients with your interpretations and reccomendations. 
+* Make predictions for new observations.
+
+Bayesian linear models with MCMCregress()
+=======================================================
+type: section
+
+Bayesian lm with MCMCregress()
+======================================================
+The Bayesian version of the linear model is also easy to run in R. 
+```{r}
+library(MCMCpack)
+m7.b <- MCMCregress(overall ~ rides + games + wait + clean + logdist + 
+                              has.child + wait:has.child, data=sat.std)
+summary(m7.b)
+```
+
+
+Exercises
+=====
+Access the `Salaries` data set:
+```{r}
+library(car)    # install.packages("car") if needed
+data(Salaries)
+```
+1. Visualize salary. Should it be transformed? If so, how? And if so, do that and include as a new variable.
+2. Fit a linear model for salary as a response of sex, rank, discipline, and 
+years since PhD. Which effects are statistically significant?
+3. Plot the coefficients for those effects.
+4. Repeat the linear model (salary in response to sex, rank, discipline, and 
+years since PhD) using Bayesian estimation. Summarize the results.
+
+Answers (1)
+=====
+Visualize salary. Should it be transformed? If so, how? And if so, do that and include as a new variable.
+```{r}
+Salaries$logsalary <- log(Salaries$salary)
+par(mfrow=c(1,2))
+hist(Salaries$salary)       # <== actually do this first
+hist(log(Salaries$salary))  # also try sqrt() etc
+```
+
+Answers (2)
+=====
+Fit a linear model for salary as a response of sex, rank, discipline, and 
+years of service. Which effects are statistically significant?
+```{r}
+salary.lm <- lm(salary ~ sex + rank + discipline + yrs.service,
+                data=Salaries)
+summary(salary.lm)
+```
+
+
+Answers (3)
+=====
+Plot the coefficients for those (linear model) effects. *[Note: this plot shows
+$\pm$ 1 standard error, not 95% confidence interval.]*
+```{r}
+library(coefplot)     # install if needed
+coefplot(salary.lm)
+```
+
+Answers (4)
+=====
+Repeat the linear model (salary in response to sex, rank, discipline, and 
+years since PhD) using Bayesian estimation. Summarize the results.
+```{r, }
+
+```
+
+```{r, results="hide"}
+library(MCMCpack)
+set.seed(98108)
+salary.lm.b <- MCMCregress(
+                  salary ~ sex + rank + discipline + yrs.service,
+                  data=Salaries)
+```
+```{r}
+options("scipen"=100, "digits"=4)    # force non-scientific notation
+summary(salary.lm.b)$quantiles
+```
+
+
+That's all for Chapter 7!
+=========
+type: section
+
+# Break time
+
+
+Notes
+========
+<small>
+This presentation is based on Chapter 7 of Chapman and Feit, *R for Marketing Research and Analytics* &copy; 2015 Springer.    
+
+Exercises here use the `Salaries` data set from the `car` package, John Fox and Sanford Weisberg (2011). *An R Companion to Applied Regression*, Second Edition. Thousand Oaks CA: Sage. http://socserv.socsci.mcmaster.ca/jfox/Books/Companion
+
+All code in the presentation is licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0\ Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.  
+</small>
+
+

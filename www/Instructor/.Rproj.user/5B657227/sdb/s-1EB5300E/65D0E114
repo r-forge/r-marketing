@@ -1,0 +1,18 @@
+{
+    "contents" : "---\ntitle: \"Introduction to Factor Analysis for Marketing\"\nsubtitle: \"SKIM/Sawtooth Software Conference 2016, Rome\"\nauthor: \"Chris Chapman, Google\"\ndate: \"April 2016\"\noutput: \n  beamer_presentation: \n    colortheme: beaver\n    slide_level: 2\n    theme: Rochester\n    toc: yes\n---\n\n# Introduction\n\n## R Markdown\n\nThis is an R Markdown presentation. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.\n\nWhen you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.\n\n## Slide with Bullets\n\n- Bullet 1\n- Bullet 2\n- Bullet 3\n\n# With R\n\n## Slide with R Code and Output\n\n```{r}\nsummary(cars)\n```\n\n## Slide with Plot\n\n```{r, echo=FALSE}\nplot(cars)\n```\n\n",
+    "created" : 1453591116395.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3352567085",
+    "id" : "65D0E114",
+    "lastKnownWriteTime" : 1453671128,
+    "path" : "~/Documents/Chris Documents/papers/General/Intro Factor Analysis/intro-factor-analysis.Rmd",
+    "project_path" : null,
+    "properties" : {
+        "tempName" : "Untitled2"
+    },
+    "relative_order" : 9,
+    "source_on_save" : false,
+    "type" : "r_markdown"
+}

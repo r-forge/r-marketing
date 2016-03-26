@@ -1,0 +1,296 @@
+
+R for Marketing Research and Analytics
+========================================================
+Author: Chris Chapman and Elea McDonnell Feit
+Date: January 2016
+css: ../chapman-feit-slides.css
+width: 1024
+height: 768
+
+**Chapter 4: Relationships between Variables (Bivariate Statistics)**  
+
+Website for all data files:  
+[http://r-marketing.r-forge.r-project.org/data.html](http://r-marketing.r-forge.r-project.org/data.html)
+
+
+Load CRM data
+========
+As always, see the book for details about data simulation. Meanwhile, we'll load it.
+This is example data with data on customers' visits, transactions, and spending for online 
+and retail purchases:
+```{r}
+cust.df <- read.csv("http://goo.gl/PmPkaG")
+str(cust.df)
+```
+
+
+
+Converting data to factors
+========
+Text data is automatically converted to factors when reading CSVs. However, sometimes data that appears to be numeric is really not.
+
+The factor() function will convert data to nominal factors:
+
+```{r}
+str(cust.df$cust.id)
+cust.df$cust.id <- factor(cust.df$cust.id)
+
+str(cust.df$cust.id)
+```
+
+Option: ordered=TRUE (or ordered() function) creates ordinal factors.
+
+
+Basic scatterplot
+========
+Let's look at scatterplots. How does age relate to credit score?
+```{r}
+plot(x=cust.df$age, y=cust.df$credit.score)
+```
+
+
+A better plot
+========
+Add color, labels, and adjust the axis limits:
+```{r}
+plot(cust.df$age, cust.df$credit.score, 
+     col="blue",
+     xlim=c(15, 55), ylim=c(500, 900), 
+     main="Active Customers as of June 2014",
+     xlab="Customer Age (years)", ylab="Credit Score ")
+
+```
+
+Add a regression line
+========
+abline() adds a regression line from a linear model (we'll
+discuss regression in depth later)
+
+```{r}
+plot(cust.df$age, cust.df$credit.score, 
+     col="blue", xlim=c(15, 55), ylim=c(500, 900), 
+     xlab="Customer Age (years)", ylab="Credit Score ")
+
+abline(lm(cust.df$credit.score ~ cust.df$age))
+```
+
+
+Zero-inflated and skewed data
+========
+
+Question: how do online sales relate to in-store sales? Does online decrease or increase online sales?
+
+Before starting on this, note that customer data often has two issues:
+* __Skew__: many small transactions, few large ones
+* __Zero inflation__: many zero values (because many customers spend $0 in any period)
+
+There are various ways to handle these issues, but an easy approach is to use
+logarithmic plots. Instead of plotting on raw scales, plot on logarithmic scale.
+
+Let's look at this in steps.
+
+
+Scatterplot with skew
+========
+How does in-store spending relate to online spending? 
+It's hard to tell because both are skewed! The apparent negative slope is 
+very misleading.
+```{r}
+plot(cust.df$store.spend, cust.df$online.spend, 
+     xlab="Prior 12 months in-store sales ($)", 
+     ylab="Prior 12 months online sales ($)")
+```
+
+Looking at the skew
+========
+A histogram reveals the skew, e.g., for in-store spending:
+
+```{r}
+hist(cust.df$store.spend, 
+     breaks=(0:ceiling(max(cust.df$store.spend)/10))*10,
+     xlab="Prior 12 months online sales ($)" )
+```
+
+Using logarithmic axes
+========
+Use the log= argument to set one or both axes to logarithmic. **Caution**: 
+log(x $\le$ 0) is not defined, so make sure values are positive. Add a constant
+such as +1 if needed. Now we see little or no relationship:
+```{r}
+plot(cust.df$store.spend + 1, cust.df$online.spend + 1,
+     log="xy")
+```
+
+
+
+Multi-panel plots
+========
+How does distance relate to in-store and online spending? Use par(mfrow=c(ROWS, COLUMNS)) to put multiple plots together:
+```{r}
+par(mfrow=c(2, 2))
+with(cust.df, plot(distance.to.store, store.spend))
+with(cust.df, plot(distance.to.store, online.spend))
+with(cust.df, plot(distance.to.store, store.spend+1, log="xy"))
+with(cust.df, plot(distance.to.store, online.spend+1, log="xy"))
+```
+
+
+Scatterplot matrix: Quick 2-way Visualization
+========
+```{r}
+pairs(formula = ~ age + credit.score + distance.to.store + 
+                  online.spend + store.trans + store.spend,
+      data=cust.df)
+```
+
+
+Fancy alternative: scatterplotMatrix in "car"
+========
+```{r}
+library(car)       # install if needed
+scatterplotMatrix(formula = ~ age + credit.score + 
+                    distance.to.store + online.spend + 
+                    store.trans + store.spend,
+                  data=cust.df, diagonal="histogram")
+```
+
+
+Correlation
+========
+A basic inferential test of Pearson's $r$ can be done with cor.test():
+```{r}
+cor.test(cust.df$age, cust.df$credit.score)
+```
+Age is associated with credit score here, $r = 0.25, p \lt .05$.
+
+
+Correlation matrix
+========
+The cor() function computes $r$ between all pairs of variables:
+```{r}
+cor(cust.df[, c(2, 3, 5:12)])  # only numeric cols
+```
+
+
+Redoing that with complete cases
+========
+Add **use="complete.obs"** argument:
+```{r}
+cor(cust.df[, c(2, 3, 5:12)], use="complete.obs")
+```
+
+
+Visualize correlation matrix
+========
+Use the "corrplot" package. See book (and help) for more options.
+```{r}
+library(corrplot)    # install if needed
+corrplot(corr=cor(cust.df[ , c(2, 3, 5:12)], 
+                  use="complete.obs"), 
+         method ="ellipse")
+```
+
+
+Data Transformation
+========
+R makes it easy to explore common transformations (log, 1/x, sqrt, etc.)
+
+```{r}
+cor(cust.df$distance.to.store, cust.df$store.spend)
+cor(1/cust.df$distance.to.store, cust.df$store.spend)
+cor(1/sqrt(cust.df$distance.to.store), cust.df$store.spend)
+```
+We see that closeness to store ($1/distance$) is strongly relation to spend.
+Having a good transformation gives a better estimate of strength.
+
+See book for more on common transformations and how to find an optimal transform.
+
+
+
+Polychoric correlation
+========
+With ordinal variables such as satisfaction ratings, consider polychoric
+correlation instead of Pearson's r. We need it because the ratings are not 
+fine grained, and plot on top of one another:
+```{r}
+plot(cust.df$sat.service, cust.df$sat.selection, 
+     xlab="Sat, Service", ylab="Sat, Selection")
+```
+
+
+Polychoric correlation test
+========
+First identify respondents with data:
+```{r}
+resp <- !is.na(cust.df$sat.service)
+```
+
+Now compare Pearson correlation to polychoric:
+```{r}
+cor(cust.df$sat.service[resp], cust.df$sat.selection[resp]) 
+
+library(psych)   # install if needed
+polychoric(cbind(cust.df$sat.service[resp], 
+                 cust.df$sat.selection[resp]))
+```
+
+
+Exercise!
+=======
+Access the `Salaries` data set:
+```{r}
+library(car)    # install.packages("car") if needed
+data(Salaries)
+```
+1. Plot salary vs. years since PhD.
+2. What is the correlation for salary vs. years since PhD? 
+... vs. years of service? Are they statistically significant?
+3. Draw a visualization of all bivariate relationships
+
+
+Answers (1)
+=======
+Plot salary vs. years since PhD.
+```{r}
+with(Salaries, plot(yrs.since.phd, salary))
+```
+
+
+Answers (2)
+=======
+What is the correlation for salary vs. years since PhD? 
+... vs. years of service? Are they statistically significant?
+```{r}
+with(Salaries, cor(salary, yrs.since.phd))
+with(Salaries, cor(salary, yrs.service))
+with(Salaries, cor.test(salary, yrs.since.phd))
+with(Salaries, cor.test(salary, yrs.service))
+```
+
+
+Answers (3)
+=======
+Draw a visualization of all bivariate relationships
+```{r}
+library(car)
+scatterplotMatrix(Salaries)   # could use pairs() instead
+```
+
+
+That's all for Chapter 4
+=========
+type: section
+
+# Thank you! Time for Q&A.
+
+
+Notes
+========
+<small>
+This presentation is based on Chapter 6 of Chapman and Feit, *R for Marketing Research and Analytics* &copy; 2015 Springer. http://r-marketing.r-forge.r-project.org/
+
+Exercises here use the `Salaries` data set from the `car` package, John Fox and Sanford Weisberg (2011). *An R Companion to Applied Regression*, Second Edition. Thousand Oaks CA: Sage. http://socserv.socsci.mcmaster.ca/jfox/Books/Companion
+
+All code in the presentation is licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0\ Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.  
+</small>
+

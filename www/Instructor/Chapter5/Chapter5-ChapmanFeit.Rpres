@@ -1,0 +1,290 @@
+R for Marketing Research and Analytics
+========================================================
+Author: Chris Chapman and Elea McDonnell Feit
+Date: January 2016
+css: ../chapman-feit-slides.css
+width: 1024
+height: 768
+
+**Chapter 5: Differences Between Groups**  
+
+Website for all data files:  
+[http://r-marketing.r-forge.r-project.org/data.html](http://r-marketing.r-forge.r-project.org/data.html)
+
+
+
+Load Segmentation/Subscription data
+========
+As usual, check the book for details on the data simulation. For now:
+```{r}
+seg.df <- read.csv("http://goo.gl/qw303p")
+summary(seg.df)
+```
+
+
+
+
+Descriptives: Selecting by group
+========
+```{r}
+mean(seg.df$income[seg.df$Segment == "Moving up"])
+mean(seg.df$income[seg.df$Segment == "Moving up" & 
+                   seg.df$subscribe=="subNo"])
+```
+This quickly gets tedious!
+
+
+Descriptives: apply a function by group
+========
+**by**(VARIABLE of interest, GROUPING variable, FUNCTION)
+```{r}
+by(seg.df$income, seg.df$Segment, mean)
+```
+Use list() to have more than one grouping variable:
+```{r}
+by(seg.df$income, list(seg.df$Segment, seg.df$subscribe), mean)
+```
+
+Aggregate: use a formula!
+========
+Break out *income by segment*, in data "*seg.df*", computing the *mean*:
+```{r}
+aggregate(income ~ Segment, data=seg.df, mean)
+```
+
+This extends easily to multiple dimensions:
+```{r}
+aggregate(income ~ Segment + ownHome, data=seg.df, mean)
+```
+
+Aggregate returns a data frame
+========
+```{r}
+agg.data <- aggregate(income ~ Segment + ownHome, 
+                      data=seg.df, mean)
+str(agg.data)
+agg.data[2, ]
+agg.data[2, 3]
+```
+
+
+Tables
+========
+Reminder -- a table counts occurrences of a single value, such as one level of a factor.
+
+```{r}
+table(seg.df$Segment, seg.df$ownHome)
+```
+Telling R to use *seg.df* for everything is easy with **with()**:
+```{r}
+with(seg.df, table(Segment, ownHome))
+```
+Note that table() uses R standard *(X, Y)* == *Row, Column* order.
+
+prop.table()
+========
+Reminder -- get proportions for a table by wrapping **table()** with **prop.table()**:
+```{r}
+with(seg.df, prop.table(table(Segment, ownHome)))
+```
+
+The default computes full table proportions. Obtain marginal proportions by 
+specifying rows (*margin=1*) or columns (*margin=2*):
+```{r}
+with(seg.df, prop.table(table(Segment, ownHome), margin=1))
+```
+
+
+Doing math in a table
+========
+Reminder -- **`aggregate()`** can be used to apply a function to data, computing the 
+result within with each group.  
+
+For instance, to add up the total number of kids in each segment, use *sum*:
+```{r}
+aggregate(kids ~ Segment, data=seg.df, sum)
+```
+
+
+Visualization: Counts by Group
+=====
+**histogram()** in the **lattice** package plots proportional frequency by 
+group. This is an alternative to basic `hist()` that we saw in an earlier chapter.  
+
+To get subscribers (**~subscribe**) by segment (**| Segment**):
+```{r}
+library(lattice)
+histogram(~subscribe | Segment, data=seg.df)
+```
+
+
+Histograms continued
+=====
+You can plot counts instead of proportions with **type="count"**. 
+There are options for the layout (cols, rows in this case) and colors:
+```{r}
+histogram(~subscribe | Segment, data=seg.df, type="count", 
+          layout=c(4,1), col=c("burlywood", "darkolivegreen"))
+```
+
+# counts instead of proportions, and some visual options
+
+Histograms by 2 factors
+=====
+Break out by multiple factors using **| var1 + var2 + ...**:
+```{r}
+histogram(~subscribe | Segment + ownHome, data=seg.df)
+```
+
+
+
+Continuous Data: "Spreadsheet" style
+=====
+The general process is to **aggregate()** the data that you want, then plot that. 
+For example: mean income by segment, using a **barchart**:
+```{r}
+seg.mean <- aggregate(income ~ Segment, data=seg.df, mean)
+library(lattice)
+barchart(income ~ Segment, data=seg.mean, col="grey")
+```
+
+
+Continuous data by two factors
+=====
+Use aggregate with **+** to break out multiple factors:
+```{r}
+seg.agg <- aggregate(income ~ Segment + ownHome, data=seg.df, mean)
+barchart(income ~ Segment, data=seg.agg, 
+         groups=ownHome, auto.key=TRUE,
+         par.settings = simpleTheme(col=c("gray95", "gray50")) )
+```
+
+
+Continuous Data: "Statistics" style
+=====
+Boxplots show much more information about the data distribution (see book for 
+details). **`bwplot()`** from **`lattice`** is an upgrade over `boxplot()` that we saw in
+earlier chapters:
+```{r}
+library(lattice)
+bwplot(Segment ~ income, data=seg.df, horizontal=TRUE, 
+       xlab = "Income")
+```
+
+
+Boxplots with two way grouping
+=====
+You can add a "conditioning" variable using **|**:
+```{r}
+bwplot(Segment ~ income | ownHome, data=seg.df, 
+       horizontal=TRUE, xlab="Income")
+```
+
+
+Exercises
+=====
+Access the `Salaries` data set:
+```{r}
+library(car)    # install.packages("car") if needed
+data(Salaries)
+```
+1. What are the mean salaries, by rank and sex?
+2. Plot those with a horizontal boxplot (conditioned on sex)
+
+
+Answers (1)
+=====
+What are the mean salaries, by rank and sex?
+```{r}
+aggregate(salary ~ rank + sex, data=Salaries, mean)
+```
+
+Answers (2)
+=====
+Plot those with a boxplot (conditioned on sex)
+
+```{r}
+library(lattice)
+bwplot(salary ~ rank | sex, data=Salaries)
+```
+
+Extra slides
+=====
+type: section
+
+- Language: `for()`
+- Language: `if()` and `ifelse()`
+
+
+Language: for()
+========
+**`for()`** loops over a sequence of values, assigning them in turn to an index variable:
+```{r}
+for (i in 1:10) { print(i) }
+```
+Advanced R programmers often avoid **`for()`** ... but if it makes sense to you
+then go ahead and use it!
+
+
+Integers are not required, just a sequence
+=========
+```{r}
+i.seq <- seq(from=2.1, to=6.2, by=0.65)
+for (i in i.seq ) { print(i) }
+for (i in c(5, 4, 3, 5, 3, 0, -100, 10)) { cat(i, " ") }
+for (i in c("Hello ","world, ","welcome to R!")) { cat(i) }
+```
+See book for tips on `for()` and the importance of **`seq_along()`** as an alternative!
+
+
+if()
+========
+**`if()`** is used for basic program flow control. 
+
+**`if (A) { B else C } `** means:  
+"If A is true, compute B *[any commands inside {}]*, otherwise compute C."
+
+```{r}
+x <- 2
+if (x > 0) {
+  print ("Positive!")
+} else {
+  print ("Zero or negative!")
+}
+```
+Rules of brackets are confusing, so simplify: always use **{** and **}** !
+
+**`else C `** is optional. If !A and no C block, nothing will occur.
+
+
+ifelse()
+========
+**ifelse()** is a vectorized version of if(). Use it to *create a vector* using logic, 
+*not* to control program flow.
+```{r}
+x <- -2:2
+
+if (x > 0) {      # bad code -- only tests once!
+  "pos"
+} else { 
+  "neg/zero"
+}
+```
+The correct way to do this is:
+```{r}
+ifelse(x > 0, "pos", "neg/zero")
+```
+Instead of simply getting values as the result, you could perform actions 
+(e.g., by calling functions to do something).
+
+
+
+Notes
+========
+<small>
+This presentation is based on Chapter 6 of Chapman and Feit, *R for Marketing Research and Analytics* &copy; 2015 Springer. http://r-marketing.r-forge.r-project.org/
+
+Exercises here use the `Salaries` data set from the `car` package, John Fox and Sanford Weisberg (2011). *An R Companion to Applied Regression*, Second Edition. Thousand Oaks CA: Sage. http://socserv.socsci.mcmaster.ca/jfox/Books/Companion
+
+All code in the presentation is licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0\ Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.  
+</small>

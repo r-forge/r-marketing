@@ -1,0 +1,498 @@
+R for Marketing Research and Analytics
+========================================================
+Author: Chris Chapman and Elea McDonnell Feit
+Date: February 2016
+css: ../chapman-feit-slides.css
+width: 1024
+height: 768
+
+**Chapter 9: Advanced Linear Modeling Topics**  
+
+Website for all data files:  
+[http://r-marketing.r-forge.r-project.org/data.html](http://r-marketing.r-forge.r-project.org/data.html)
+
+
+Topics
+=====
+We cover several separate topics that extending discussion of linear models.
+
+- Collinearity: detecting and fixing
+- Logistic regression
+- Hierarchical linear models (mixed effects models)
+- Bayesian estimation of hierarchical linear models
+
+
+Collinearity
+=====
+type: section
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(cache=TRUE)               # save results, don't recalc
+knitr::opts_chunk$set(cache.extra = rand_seed)
+```
+
+
+First load the data
+=====
+We will use the retail transaction + CRM-like data from Chapter 4:
+
+```{r}
+cust.df <- read.csv("http://goo.gl/PmPkaG")
+summary(cust.df)
+```
+
+
+Initial linear model
+=====
+Suppose we want to estimate online spend on the basis of other variables. 
+A first attempt might be:
+
+```{r}
+spend.m1 <- lm(online.spend ~ ., 
+               data=subset(cust.df[ , -1], online.spend > 0))
+summary(spend.m1)
+```
+
+
+Puzzle
+=====
+Online spend is highly related to online transactions ... but not to online _visits_?
+
+```{r, eval=FALSE}
+                   Estimate Std. Error t value Pr(>|t|)    
+(Intercept)        6.718948  33.537665   0.200   0.8413    
+online.visits     -0.072269   0.204061  -0.354   0.7234    
+online.trans      20.610744   0.667450  30.880   <2e-16 ***
+store.trans        0.135018   3.211943   0.042   0.9665    
+store.spend        0.001796   0.078732   0.023   0.9818    
+sat.service        5.638769   3.016181   1.870   0.0623 .  
+```
+That doesn't make sense. If they visit more, they should spend more.  
+
+What's going on?
+
+
+Something we omitted
+=====
+Before modeling, look at the data! Scatter plots show problems here. Many 
+items are skewed and also highly correlated.
+
+```{r}
+library(gpairs)
+gpairs(cust.df)
+```
+
+
+Fixing skew
+=====
+We could fix skew --- e.g., in transactions and visits -- one variable at a 
+time. Or, we can automate it.
+
+```{r}
+autoTransform <- function(x) { 
+  library(forecast)
+  return(scale(BoxCox(x, BoxCox.lambda(x))))
+}
+
+cust.df.bc <- cust.df[complete.cases(cust.df), -1]  # copy of data
+cust.df.bc <- subset(cust.df.bc, online.spend > 0)  # data with spend
+numcols <- which(colnames(cust.df.bc) != "email")   # numeric columns
+cust.df.bc[, numcols] <- lapply(cust.df.bc[, numcols], autoTransform)
+```
+
+We use the Box-Cox transformation to transform data to approximate normality,
+using `BoxCox` from the `forecast` package. 
+
+Data is also rescaled with `scale` to be on Z-score (standardized) scale.
+
+
+Plot again
+=====
+```{r}
+gpairs(cust.df.bc)
+```
+
+Does that solve it?
+=====
+It's a good thing to do, but not enough.
+```{r}
+spend.m2 <- lm(online.spend ~ ., data=cust.df.bc)
+summary(spend.m2)
+```
+
+
+Check variables in the model
+=====
+For any linear model with correlated variables check the _variable inflation factor_. 
+
+VIF measures how much a variable's standard error is inflated due to its variance being shared with other variables.
+
+```{r}
+library(car)
+vif(spend.m2)
+```
+
+Rule of thumb: VIF > 5 indicates a problem. In this case, the `..visits` and 
+`..trans` variables are problematic.
+
+
+Solution 1: Omit covariates
+=====
+Fit the model again, omitting one each of the `visits` and `trans` variables.
+
+```{r}
+spend.m4 <- lm(online.spend ~ . -online.trans -store.trans, 
+               data=cust.df.bc)
+vif(spend.m4)
+```
+
+Solution 1: Omit variables (result)
+=====
+Now visits are related to spend (!)
+
+```{r}
+summary(spend.m4)
+```
+
+
+Solution 2: Reduce Dimensions
+=====
+Because `visits` and `trans` are very closely related, we could regard them as
+a single dimension ("activity") that happens to be measured twice.
+
+We can reduce that to a single dimension using PCA.
+
+```{r}
+pc.online <- prcomp(cust.df.bc[ , c("online.visits", "online.trans")])
+cust.df.bc$online <- pc.online$x[ , 1]
+
+pc.store <- prcomp(cust.df.bc[ , c("store.trans", "store.spend")])
+cust.df.bc$store <- pc.store$x[ , 1]
+```
+
+
+Solution 2: Model
+=====
+Now we use the principal component as the predictor.
+```{r}
+spend.m5 <- lm(online.spend ~ email + age + credit.score + 
+                 distance.to.store + sat.service + sat.selection + 
+                 online + store, 
+               data=cust.df.bc)
+
+vif(spend.m5)
+```
+
+Solution 2: Result
+=====
+```{r}
+summary(spend.m5)
+```
+
+
+
+
+Logistic Regression
+=====
+type: section
+
+
+Logistic Regression: Intro
+=====
+
+Logistic regression predicts a binary outcome from any mix of predictors. See 
+book Section 9.2.1 for more background and intuition.
+
+First, we'll set up some data. This reflects whether a _season pass_ was sold
+for a ski area, as a function of _sales channel_ and _bundle promotion_.
+
+```{r}
+pass.df <- read.csv("http://goo.gl/J8MH6A")
+pass.df$Promo <- factor(pass.df$Promo, levels=c("NoBundle", "Bundle"))
+summary(pass.df)
+```
+Note: we set the `bundle` factor levels explicitly (why?)
+
+
+Logistic regression with glm(): model 1
+=====
+Is `Promotion` related to `Pass` purchase? (Warning: naive model!)
+```{r}
+pass.m1 <- glm(Pass ~ Promo, data=pass.df, family=binomial)
+summary(pass.m1)
+```
+
+
+Effect of promotion: take 1
+=====
+```{r}
+coef(pass.m1)
+exp(coef(pass.m1))                    # odds ratio
+plogis(0.3888) / (1-plogis(0.3888))   # another way to look at it ...
+exp(confint(pass.m1))                 # conf interval
+```
+
+
+Remember: Visualize first!
+=====
+We see that `bundle` has lower proportional sales of `pass` after it is broken
+out by `channel`. This is a case of _Simpson's paradox_.
+```{r}
+library(vcd)    # install if needed
+doubledecker(table(pass.df))
+```
+
+
+New Model with Channel and interaction
+=====
+The more complete model suggests that `bundle` has an effect only in _email_. 
+We would want to avoid bundling in other channels (park, direct mail). 
+```{r}
+pass.m3 <- glm(Pass ~ Promo + Channel + Promo:Channel, 
+               data=pass.df, family=binomial)
+exp(confint(pass.m3))   # CI for odds ratios
+```
+If the data were real, follow-up research would be good to understand why 
+this is occurring.
+
+
+Bonus: Visualize Effects
+=====
+We can compare the effect of the different interventions (channel, bundle).
+
+First, get the coefs and CIs:
+```{r}
+pass.ci <- data.frame(confint(pass.m3))     # confidence intervals
+pass.ci$X50 <- coef(pass.m3)                # midpoint estimate
+pass.ci$Factor <- rownames(pass.ci)         # for ggplot2 labels
+pass.ci
+```
+
+Build a ggplot, 1
+=====
+First we add data for the midpoint, upper, and lower CIs:
+```{r}
+library(ggplot2)
+p <- ggplot(pass.ci[-1, ], 
+            aes(x=Factor, y=exp(X50), 
+                ymax=exp(X97.5..), ymin=exp(X2.5..)))
+```
+We take the `exp()` of each one to get the odds ratio.
+
+Next add midpoints and error bars:
+```{r}
+p <- p + geom_point(size=4) + geom_errorbar(width=0.25)
+```
+And add a line where odds ratio==1.0 (no effect):
+```{r}
+p <- p + geom_hline(yintercept=1, linetype="dotted", 
+                    size=1.5, color="red")
+```
+
+
+Build a ggplot, 2
+=====
+Now plot that with titles (and rotate it for simplicity):
+```{r}
+p + ylab("Likehood by Factor (odds ratio, main effect)") +
+  ggtitle(paste("95% CI: Pass sign up odds by factor")) + 
+  coord_flip()
+```
+
+
+
+
+Hierarchical Linear Models
+=====
+type: section
+
+
+Ratings-based Conjoint Analysis data
+=====
+The data represent _preference_ on a 10 point scale for roller coasters, 
+based on the features of the coasters.
+
+```{r}
+conjoint.df <- read.csv("http://goo.gl/G8knGV")
+conjoint.df$speed  <- factor(conjoint.df$speed)   # why?
+conjoint.df$height <- factor(conjoint.df$height)  # why?
+summary(conjoint.df)
+```
+
+Aggregate model
+=====
+A simple model is just overall `rating ~ features`:
+```{r}
+ride.lm <- lm(rating ~ speed + height + const + theme, data=conjoint.df)
+summary(ride.lm)
+```
+
+Hierarchical model
+=====
+However, individuals probably vary in their preference. As marketers we can 
+use that information for both strategy --- maximizing appeal across our 
+lineup --- and for targeting.
+
+A hierarchical model has these elements:
+- Overall coefficients for the sample
+- Individual deviations from those estimates
+- Variance measures (e.g., variance of the deviations)
+
+We could allow individuals to vary by:
+- Overall preference, or intercept (scale anchor point per respondent)
+- Preference per feature (feature preference estimates per respondent)
+
+
+HLM model 1: intercept
+=====
+We tell R to estimate intercepts per respondent using `1 | resp.id`. This 
+requires an HLM package such as `lme4`.
+
+`1` is formula syntax for _intercept_, and we add `| resp.id` to estimate that
+for each unique set of observations grouped by `resp.id`:
+```{r}
+library(lme4)
+ride.hlm1 <- lmer(rating ~ speed + height + const + theme + 
+                    (1 | resp.id), data=conjoint.df)
+```
+
+HLM model 1: result (overall)
+=====
+Overall CIs for the fixed (full sample) estimates:
+```{r}
+confint(ride.hlm1)
+```
+
+
+HLM model 1: result (individual)
+=====
+We get individual deviations from the sample coefficients using `ranef()`. 
+Total coefficients per individual are obtained with `coef()`:
+```{r}
+head(ranef(ride.hlm1)$resp.id, 4)
+head(coef(ride.hlm1)$resp.id, 4)
+```
+
+
+HLM model 2: slope + intercept
+=====
+It's unlikely that respondents differ only on the intercept. We can add 
+`(PREDICTORS | resp.id)` to estimate individual-level feature preference.
+
+**Warning**: this may take several minutes to run!
+```{r, cache=TRUE}
+ride.hlm2 <- lmer(rating ~ speed + height + const + theme + 
+                   (speed + height + const + theme | resp.id),      # new
+                 data=conjoint.df,
+                 control=lmerControl(optCtrl=list(maxfun=100000)))  # why?
+```
+
+
+HLM model 2: Results
+=====
+
+```{r}
+head(ranef(ride.hlm2)$resp.id)
+head(coef(ride.hlm2)$resp.id)
+```
+
+
+HLM model 2: Breaking it out
+=====
+We can index the effects by respondent to get results for any individual.
+
+The total per-respondent estimates (`coef()`) are just the fixed effects 
+(sample, or `fixef()`) + random (individual, or `ranef()`) deviation.
+
+We can see this for an arbitrary respondent (id #196):
+```{r}
+fixef(ride.hlm2) + ranef(ride.hlm2)$resp.id[196, ]
+coef(ride.hlm2)$resp.id[196, ]
+```
+
+
+Extra: HLM the Bayesian way
+=====
+We'll fit the individual using R's powerful MCMC sampler. First, the 
+non-hierarchical model (basic lm):
+```{r}
+library(MCMCpack)    # install if needed
+set.seed(97439)
+ride.mc1 <- MCMCregress(rating ~ speed + height + const + theme, 
+                        data=conjoint.df)
+summary(ride.mc1)
+```
+
+Bayesian HLM by feature
+=====
+Syntax for MCMChregress (note the _h_) is different than `lme4`. You specify
+the random effects and the grouping variable(s). `r` and `R` set the degree of pooling across respondents (see book).
+
+**Warning**: May take a few minutes!
+```{r, cache=TRUE}
+set.seed(97439)
+ride.mc2 <- MCMChregress(
+               fixed = rating ~ speed +height + const + theme, 
+               random = ~ speed + height + const + theme, 
+               group="resp.id", data=conjoint.df, r=8, R=diag(8) )
+```
+
+Bayesian HLM: Results
+=====
+We can summarize the MCMC chain in the model to get overall results. For the 
+upper-level coeficients:
+```{r}
+summary(ride.mc2$mcmc[ , 1:8])
+```
+
+Bayesian HLM: Individual level
+====
+Individual results are stored in columns. We have to find the columns that 
+match an individual of interest. For example, respondent 196:
+
+```{r}
+cols <- grepl(".196", colnames(ride.mc2$mcmc), fixed=TRUE)
+summary(ride.mc2$mcmc[ , cols])
+```
+
+Bayesian HLM: Individual variance
+=====
+If we pick out all the individuals for one effect, we can see how much variance
+there is. (Remember to add the sample-level fixed effect if you want that.)
+
+For example, for wood construction:
+```{r}
+cols <- grepl("b.constWood", colnames(ride.mc2$mcmc))
+ride.constWood <- summary(ride.mc2$mcmc[ , cols] 
+                          + ride.mc2$mcmc[ , "beta.constWood"])
+ride.constWood$statistics
+```
+
+
+Bayesian HLM: Plot individual variance
+=====
+```{r}
+hist(ride.constWood$statistics[ , 1], 
+     main="Preference for Wood vs. Steel", 
+     xlab="Rating points", ylab="Count of respondents", xlim=c(-4,4))
+```
+
+
+
+=====
+type: section
+
+# Time for Q&A and a break!
+
+
+
+
+Notes
+========
+<small>
+This presentation is based on Chapter 9 of Chapman and Feit, *R for Marketing Research and Analytics* &copy; 2015 Springer.    
+   
+All code in the presentation is licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0\ Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.  
+</small>
+
+

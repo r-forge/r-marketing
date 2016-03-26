@@ -1,0 +1,330 @@
+R for Marketing Research and Analytics
+========================================================
+Author: Chris Chapman and Elea McDonnell Feit
+Date: February 2016
+css: ../chapman-feit-slides.css
+width: 1024
+height: 768
+
+**Chapter 12: Association Rules**
+
+Website for all data files:  
+[http://r-marketing.r-forge.r-project.org/data.html](http://r-marketing.r-forge.r-project.org/data.html)
+
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(cache=TRUE)               # save results, don't recalc
+knitr::opts_chunk$set(cache.extra = rand_seed)
+```
+
+
+Brief introduction
+=====
+_Association rule mining_ looks for associations among events and data points, 
+especially in data where absolute frequencies are low. 
+
+Some examples include:
+- Associations between items sold (where any given transaction usually purchases 0 of any specific item)
+- Associations between individuals and items
+- Associations between demographic characteristics and other behaviors such as purchase
+- Associations between interventions (where there is a large set) and behaviors
+- Recommendation engines deriving recommendations from any of the above
+
+In shopping contexts, this is often known as _market basket analysis_.
+
+
+Fundamental concepts
+=====
+A **transaction** is a set of discrete data points (e.g., an item sold) that go together. For example, a transaction might be _{hot dog, mustard, relish, cola}_.
+
+A **rule** is the conditional relationship of item sets. E.g.,: _{hog dog, mustard}_ $\rightarrow$ _{relish, cola}_. It only implies _relationship_, not causation.
+
+The goal is to find rules where the association is higher than predicted by 
+independent frequencies ... in other words, **lift**. This involves:
+
+**support(SET)**: the proportion of transactions that contain SET. For example,
+_support(hot dog, relish)=0.05_.
+
+**confidence(RULE)**: the proportion of times that items on the right hand side
+of a rule occur, relative to the left hand side. For example: _confidence(relish $\rightarrow$ hot dog)=0.50._ {hot dog} appears in 50% of the transactions 
+where {relish} appears.
+
+
+Lift
+=====
+
+**lift(RULE)** is the _support_ for a joint RULE relative to the multiplied 
+support of its parts taken separately. For example, suppose:
+
+- **_support(relish)_ = 0.01**  (relish sold in 1% of transactions)
+- **_support(hot dog)_ = 0.01**  (hot dog sold in 1% of transactions)
+- **_support(relish, hot dog)_ = 0.005**  (relish + hot dog sold in 0.5% of transactions)
+
+Then:  
+- **_lift(relish $\rightarrow$ hot dog)_ = 0.005 / (0.01 * 0.01) = 50**
+
+This says the odds of seeing a transaction containg a hot dog alongside relish 
+is 50x greater that one would expect if the two items were independent.
+
+
+Grocery example
+=====
+Data at a category level for 169 categories and 9835 transactions.
+```{r}
+# install.packages(c("arules", "arulesViz"))
+library(arules)
+data("Groceries")       # data included with arules package
+summary(Groceries)
+```
+
+
+The structure of transactions
+=====
+```{r}
+inspect(head(Groceries))
+```
+
+Finding rules
+=====
+The _apriori_ algorithm (see the book) is implemented in very fast C++ code,
+and searches for rules with specified levels of support and confidence.
+
+```{r}
+groc.rules <- apriori(Groceries, parameter=list(supp=0.01, conf=0.3, 
+                                                target="rules"))
+```
+
+Inspecting the rules
+=====
+Use `inspect()` to show the actual rules, filtering as desired:
+```{r}
+inspect(subset(groc.rules, lift > 3))
+```
+For example, if a transaction has beef, it is 3x more likely to
+have root vegetables (onions?) than expected from independent frequencies.
+
+
+A larger data set
+=====
+Brijs et al (1999) have provided real data from a supermarket chain (item 
+labels replaced by sequential numbers).
+
+Get the raw data:
+
+```{r}
+retail.raw <- readLines("http://goo.gl/FfjDAO")  # takes a while
+summary(retail.raw)
+head(retail.raw, 5)
+tail(retail.raw, 3)
+```
+
+Convert lines to item sets
+=====
+We split the lines at spaces, and number the resulting transaction vectors:
+```{r}
+retail.list <- strsplit(retail.raw, " ")
+names(retail.list) <- paste("Trans", 1:length(retail.list), sep="")
+
+str(retail.list)
+```
+
+
+Now convert to transaction sets
+=====
+We convert those vectors to the `transactions` class from `arules`:
+```{r}
+retail.trans <- as(retail.list, "transactions")
+summary(retail.trans)
+
+rm(retail.raw, retail.list)     # clean up memory
+```
+
+Find the association rules
+=====
+We ask for rules where the items appear in at least 0.1% of transactions 
+(_support_), and associations co-occur with conditional odds of 40% or more 
+(_confidence_). This yields >5000 rules in these data.
+```{r}
+retail.rules <- apriori(retail.trans, 
+                        parameter=list(supp=0.001, conf=0.4))
+```
+
+
+Visualizing Rules
+=====
+A default visualization for rules shows _confidence_ (association strength) vs. 
+_support_ (frequency of occurrence):
+```{r}
+library(arulesViz)    # install if needed
+plot(retail.rules)
+```
+
+Interactive visualization
+=====
+Try it yourself: add **`interactive=TRUE`**:
+```{r, eval=FALSE}
+plot(retail.rules, interactive=TRUE)
+```
+This allows you to zoom into regions and click on rules to inspect them.
+```{r, echo=FALSE}
+plot(retail.rules, ylim=c(0.92, 1), xlim=c(0, 0.06))
+```
+
+
+Rule subsets
+=====
+Most commonly we would want to find top rules, e.g., by lift:
+```{r}
+retail.hi <- head(sort(retail.rules, by="lift"), 50)  # top 50
+inspect(retail.hi)
+```
+
+Graph plot
+=====
+A graph plot shows a network with nodes comprising item sets. Each connection 
+is a rule. For the top 50 rules by lift:
+```{r}
+plot(retail.hi, method="graph", control=list(type="items"))
+```
+
+
+Margin, revenue, etc. by association
+=====
+```{r, echo=FALSE}
+retail.itemnames <- sort(unique(unlist(as(retail.trans, "list"))))
+# create fake "margin" per item
+set.seed(03870)
+retail.margin <- data.frame(margin=rnorm(length(retail.itemnames), 
+                                         mean=0.30, sd=0.30))
+rownames(retail.margin) <- retail.itemnames
+```
+Assume that we have margin per item in `retail.margin`:
+
+```{r}
+library(car)
+some(retail.margin, 5)
+```
+
+We can use vector indexing to find the  margin for a basket (quantity 1):
+```{r}
+retail.margin[c("39", "48", "1080"), ]
+sum(retail.margin[c("39", "48", "1080"), ])
+```
+
+Margin for a transaction
+=====
+If we take a transaction and convert it to a list of items:
+```{r}
+(basket.items <- as(retail.trans[33], "list")[[1]])
+```
+
+... then we can find its margin:
+```{r}
+round(retail.margin[basket.items, ], 2)
+sum(retail.margin[basket.items, ])
+```
+This allows us to score the association rules for margin. We could then segment
+those by other information such as respondent data.  
+
+For more info, including how to build out a more robust and realistic margin 
+function, see the book, **Section 12.3.3**.
+
+
+Non-basket data
+=====
+Association rules can work with arbitrary data. One interesting use is to 
+explore demographic & behavioral associations in segmentation-related data.
+
+We'll get consumer segmentation data from Chapter 5 (subscription status with
+demographics):
+```{r}
+seg.df <- read.csv("http://goo.gl/qw303p")
+summary(seg.df)
+```
+
+
+Cutting data into factors
+=====
+To make associations, we need nominal "items" to associate. For continuous 
+data, we might recode into factors using `cut()`:
+
+```{r}
+seg.fac <- seg.df
+seg.fac$age <- cut(seg.fac$age, 
+                   breaks=c( 0,       25,      35,      55,   65, 100), 
+                   labels=c("19-24", "25-34", "35-54", "55-64", "65+"), 
+                   right=FALSE, ordered_result=TRUE)
+seg.fac$income <- cut(seg.fac$income, 
+                      breaks=c(-100000, 40000,   70000, 1000000),
+                      labels=c( "Low", "Medium", "High"),
+                      right=FALSE, ordered_result=TRUE)
+seg.fac$kids <- cut(seg.fac$kids, 
+                      breaks=c( 0,         1,       2,        3, 100),
+                      labels=c("No kids", "1 kid", "2 kids", "3+ kids"),
+                      right=FALSE, ordered_result=TRUE)
+summary(seg.fac)
+```
+
+
+Rules in the segmentation data
+=====
+The association rule process is exactly the same:
+```{r}
+seg.trans <- as(seg.fac, "transactions")    # code as transactions
+seg.rules <- apriori(seg.trans, parameter=list(support=0.1, conf=0.4, 
+                                               target="rules"))
+```
+
+High-lift rules
+=====
+```{r}
+seg.hi <- head(sort(seg.rules, by="lift"), 35)
+inspect(seg.hi)
+```
+
+
+Visualize high-lift rules
+=====
+```{r}
+plot(seg.hi, method="graph", control=list(type="items"))
+```
+
+
+Discussion
+=====
+Association rules are perhaps best viewed as an **_exploratory_** method. They 
+generally do not express:
+- Confidence intervals needed for inference
+- Causation (although can be easily misunderstood as such)
+
+Metrics such as _lift_ are prone to overfitting in single samples. So, if you 
+want to draw inferences from association rules, consider careful 
+iteration and model testing with multiple samples (e.g., in-store
+test).
+
+Meanwhile, they can be quite useful to generate hypotheses and to view 
+data relationships in new ways.
+
+
+=====
+type: section
+
+# Q&A and a break!
+
+
+
+Notes
+========
+<small>
+This presentation is based on Chapter 12 of Chapman and Feit, *R for Marketing Research and Analytics* &copy; 2015 Springer.
+
+All code in the presentation is licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0\ Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.  
+
+**Reference for supermarket data**, used with permission:
+
+Brijs, T., Swinnen, G., Vanhoof, K., & Wets, G. (1999). "Using association
+rules for product assortment decisions: A case study." In _Proceedings of the
+Fifth ACM SIGKDD International Conference on Knowledge Discovery and
+Data Mining_ (pp. 254–260), Association for Computing Machinery.
+   
+</small>
