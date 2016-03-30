@@ -19,7 +19,7 @@ for (filename in filelist) {
   # open files to read and write
   infile <- file(paste0(wd, filename, ".Rpres"), "rt")
   outfile <- file(paste0(wd, filename, "-slides.R"), "wt")
-    
+
   # read file in
   linesin <- readLines(infile)
   
@@ -36,13 +36,19 @@ for (filename in filelist) {
     if (chunkon & grepl('```', linesin[i], fixed=TRUE)) {   # code block ends
       chunkon <- FALSE
       cat("\n", file=outfile)
-    } else if (!slideon & grepl('====', linesin[i], fixed=TRUE)) {    # slide divider
-      cat("==========\n\n", file=outfile)
-      slideon = TRUE
+    } else if (grepl('====', linesin[i], fixed=TRUE)) {    # slide divider
+      slideon <- TRUE
+      if (i > 1) {
+        slidetitle <- linesin[i-1]
+      }
     } else if (chunkon) {                                   # code to output
-      cat(linesin[i], "\n", file=outfile)
+      cat(linesin[i], "\n", file=outfile, sep="")
       slideon <- FALSE
     } else if (grepl('```{r', linesin[i], fixed=TRUE)) {    # code block starts
+      if (slideon)  {                                       # write slide title
+          cat("\n", slidetitle, "\n", file=outfile, sep="")   # slide title
+          cat("==========\n", file=outfile)
+      }
       slideon <- FALSE
       chunkon <- TRUE
     }
