@@ -1,13 +1,13 @@
-R code snippets from slides for Chapman & Feit 2015
-Slide file: Chapter13/Chapter13-ChapmanFeit
+# R code snippets from slides for Chapman & Feit 2015
+# Slide file: Chapter13/Chapter13-ChapmanFeit
 
-All code is (c) 2015, Springer. http://r-marketing.r-forge.r-project.org/
+# All code is (c) 2015, Springer. http://r-marketing.r-forge.r-project.org/
 
-==========
+# ==========
 
 
-Load some choice data
-==========
+# Load some choice data
+# ==========
 cbc.df <- 
   read.csv("http://goo.gl/5xQObB", 
            colClasses = c(seat = "factor", 
@@ -15,20 +15,20 @@ cbc.df <-
 head(cbc.df[,c(-4, -5)])
 
 
-Summarize the choices
-==========
+# Summarize the choices
+# ==========
 xtabs(choice ~ price, data=cbc.df)
 xtabs(choice ~ cargo, data=cbc.df)
 
 
-Summarize the choices
-==========
+# Summarize the choices
+# ==========
 xtabs(choice ~ seat, data=cbc.df)
 xtabs(choice ~ eng, data=cbc.df)
 
 
-First load a package 
-==========
+# First load a package 
+# ==========
 library(mlogit)  
 
 cbc.mlogit <- 
@@ -38,14 +38,14 @@ cbc.mlogit <-
               id.var="resp.id")
 
 
-Estimate a choice model
-==========
+# Estimate a choice model
+# ==========
 m1 <- mlogit(choice ~ 0 + seat + cargo + eng + price, data = cbc.mlogit)
 summary(m1)
 
 
-Estimate a choice model (continued)
-==========
+# Estimate a choice model (continued)
+# ==========
 Coefficients :
           Estimate Std. Error  t-value  Pr(>|t|)    
 seat7    -0.535280   0.062360  -8.5837 < 2.2e-16 ***
@@ -59,8 +59,8 @@ price40  -1.725851   0.069631 -24.7856 < 2.2e-16 ***
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
 
-Simulating choice shares: a little function
-==========
+# Simulating choice shares: a little function
+# ==========
 predict.mnl <- function(model, data) { 
   data.model <- 
     model.matrix(
@@ -72,8 +72,8 @@ predict.mnl <- function(model, data) {
 }
 
 
-Simulating choice shares: output
-==========
+# Simulating choice shares: output
+# ==========
 attrib <- list(seat = c("6", "7", "8"), 
                cargo = c("2ft", "3ft"),
                eng = c("gas", "hyb", "elec"), 
@@ -83,8 +83,8 @@ new.data <- expand.grid(attrib)[c(8, 1, 3, 41, 49, 26), ]
 predict.mnl(m1, new.data)
 
 
-Sensitivity plot
-==========
+# Sensitivity plot
+# ==========
 sensitivity.mnl <- function(model, attrib, base.data, competitor.data) {
   # Function for creating data for a share-sensitivity chart
   # model: mlogit object returned by mlogit() function
@@ -111,16 +111,16 @@ barplot(tradeoff$increase, horiz=FALSE, names.arg=tradeoff$level,
         ylab="Change in Share for Baseline Product")
 
 
-Estimate a different choice model
-==========
+# Estimate a different choice model
+# ==========
 m3 <- 
   mlogit(choice ~ 0 + seat + cargo + eng 
          + as.numeric(as.character(price)), 
          data = cbc.mlogit)
 
 
-Estimates for a different choice model
-==========
+# Estimates for a different choice model
+# ==========
 Coefficients :
             Estimate Std. Error  t-value  Pr(>|t|)    
 seat7    -0.5345392  0.0623518  -8.5730 < 2.2e-16 ***
@@ -133,19 +133,19 @@ price    -0.1733053  0.0069398 -24.9726 < 2.2e-16 ***
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
 
-Willingness-to-pay
-==========
+# Willingness-to-pay
+# ==========
 coef(m3)["cargo3ft"]/
   (-coef(m3)["as.numeric(as.character(price))"]/1000)
 
 
-Compare models
-==========
+# Compare models
+# ==========
 lrtest(m1, m3)
 
 
-Estimating a hierarchical model
-==========
+# Estimating a hierarchical model
+# ==========
 m1.rpar <- rep("n", length=length(m1$coef))
 names(m1.rpar) <- names(m1$coef)
 m1.rpar
@@ -157,8 +157,8 @@ m2.hier <-
                   correlation = TRUE)
 
 
-Hierarchical model estimates
-==========
+# Hierarchical model estimates
+# ==========
 summary(m2.hier)
 
 random coefficients
@@ -172,8 +172,8 @@ price35  -Inf -1.5468038 -1.1819210 -1.1819210 -0.8170383  Inf
 price40  -Inf -2.6912308 -2.1749326 -2.1749326 -1.6586344  Inf
 
 
-Hierarchical model estimates (continued)
-==========
+# Hierarchical model estimates (continued)
+# ==========
 Coefficients :
                     Estimate Std. Error  t-value  Pr(>|t|)    
 seat7             -0.6571127  0.0730592  -8.9942 < 2.2e-16 ***
@@ -215,8 +215,8 @@ price40.price40    0.4464356  0.1269717   3.5160 0.0004381 ***
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
 
-Predicting shares
-==========
+# Predicting shares
+# ==========
 library(MASS)
 predict.hier.mnl <- function(model, data, nresp=1000) {
   data.model <- 
@@ -235,7 +235,7 @@ predict.hier.mnl <- function(model, data, nresp=1000) {
 }
 
 
-Predicted shares
-==========
+# Predicted shares
+# ==========
 predict.hier.mnl(m2.hier, data=new.data)
 

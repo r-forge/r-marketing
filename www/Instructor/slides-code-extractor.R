@@ -24,10 +24,10 @@ for (filename in filelist) {
   linesin <- readLines(infile)
   
   # iterate over lines and write code chunks to outfile
-  cat(paste0("R code snippets from slides for Chapman & Feit 2015\n",
-             "Slide file: ", filename, "\n\n",
-             "All code is (c) 2015, Springer. http://r-marketing.r-forge.r-project.org/",
-             "\n\n==========\n\n"), file=outfile)
+  cat(paste0("# R code snippets from slides for Chapman & Feit 2015\n",
+             "# Slide file: ", filename, "\n\n",
+             "# All code is (c) 2015, Springer. http://r-marketing.r-forge.r-project.org/",
+             "\n\n# ==========\n\n"), file=outfile)
 
   chunkon <- FALSE    # are we in an R chunk?
   slideon <- TRUE     # are we at the top of a slide?
@@ -46,8 +46,8 @@ for (filename in filelist) {
       slideon <- FALSE
     } else if (grepl('```{r', linesin[i], fixed=TRUE)) {    # code block starts
       if (slideon)  {                                       # write slide title
-          cat("\n", slidetitle, "\n", file=outfile, sep="")   # slide title
-          cat("==========\n", file=outfile)
+          cat("\n# ", slidetitle, "\n", file=outfile, sep="")   # slide title
+          cat("# ==========\n", file=outfile)
       }
       slideon <- FALSE
       chunkon <- TRUE
