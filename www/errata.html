@@ -77,14 +77,34 @@ install.packages(old.mc, repos=NULL, type="source")</pre><br>
                             (for print only; the available <a href="code.html" accesskey="3" title="">.R file</a> is correct)
                         </td>
                     </tr>                    
+
+                    <tr class="rowB">
+                        <td>365</td>
+                        <td>To ensure that the results obtained from the simulated data match the results obtained when the data is loaded from the data file, the code block should be replaced with:<br><br>
+                        <pre>cbc.df <- read.csv("http://goo.gl/5xQObB", 
+                    colClasses = c(seat = "factor", price = "factor", 
+                                   choice="integer"))
+cbc.df$eng <- factor(cbc.df$eng, levels=c("gas", "hyb", "elec"))
+cbc.df$carpool <- factor(cbc.df$carpool, levels=c("yes", "no"))
+summary(cbc.df)
+</pre>
+                        </td>
+                    </tr>                    
+
                     
                    <tr class="rowB">
                        <td>384</td>
                         <td>The output of "<code>summary(m1.hier)</code>" shows negative estimates for <code>sd.seat7</code> and <code>sd.price</code>, which is incorrect because variance cannot be negative. The negative sign is an artifact of the estimation routine that <code>mlogit()</code> uses when reporting <code>summary()</code>, as of Oct 30, 2015. The command "<code>stdev(m1.hier)</code>" is another way to check the estimates of standard errors for the population distribution, and correctly reports them all as positive.
                         </td>
                      </tr>
-                    
-                    
+
+                   <tr class="rowA">
+                       <td>387</td>
+                         <td>The first line of code at the top of the page should reference the model input to the function, rather than the m2.hier model object as follows:<br><br>
+                        <pre>coef.mu <- model[1:dim(coef.Sigma)[1]]</pre><br>
+                        This will not affect the output of the code in the book, but it would produce an error, if the function is used with a different model.
+                        </td>
+                </tr>                    
                     
                 </table>
                 
