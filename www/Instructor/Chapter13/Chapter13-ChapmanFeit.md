@@ -67,7 +67,12 @@ Load some choice data
 cbc.df <- 
   read.csv("http://goo.gl/5xQObB", 
            colClasses = c(seat = "factor", 
-                          price = "factor"))  
+                          price = "factor", 
+                          choice="integer"))
+cbc.df$eng <- factor(cbc.df$eng, 
+                    levels=c("gas", "hyb", "elec"))
+cbc.df$carpool <- factor(cbc.df$carpool, 
+                         levels=c("yes", "no"))
 head(cbc.df[,c(-4, -5)])
 ```
 
@@ -128,8 +133,8 @@ xtabs(choice ~ eng, data=cbc.df)
 
 ```
 eng
-elec  gas  hyb 
- 608 1444  948 
+ gas  hyb elec 
+1444  948  608 
 ```
 
 Why model? 
@@ -186,8 +191,8 @@ Coefficients :
 seat7    -0.535280   0.062360  -8.5837 < 2.2e-16 ***
 seat8    -0.305840   0.061129  -5.0032 5.638e-07 ***
 cargo3ft  0.477449   0.050888   9.3824 < 2.2e-16 ***
-enggas    1.530762   0.067456  22.6926 < 2.2e-16 ***
-enghyb    0.719479   0.065529  10.9796 < 2.2e-16 ***
+enghyb   -0.811282   0.060130 -13.4921 < 2.2e-16 ***
+engelec  -1.530762   0.067456 -22.6926 < 2.2e-16 ***
 price35  -0.913656   0.060601 -15.0765 < 2.2e-16 ***
 price40  -1.725851   0.069631 -24.7856 < 2.2e-16 ***
 ---
@@ -251,12 +256,12 @@ predict.mnl(m1, new.data)
 
 ```
         share seat cargo  eng price
-8  0.44643895    7   2ft  hyb    30
-1  0.16497955    6   2ft  gas    30
-3  0.12150814    8   2ft  gas    30
-41 0.02771959    7   3ft  gas    40
-49 0.06030713    6   2ft elec    40
-26 0.17904663    7   2ft  hyb    35
+8  0.11273356    7   2ft  hyb    30
+1  0.43336911    6   2ft  gas    30
+3  0.31917819    8   2ft  gas    30
+41 0.07281396    7   3ft  gas    40
+49 0.01669280    6   2ft elec    40
+26 0.04521237    7   2ft  hyb    35
 ```
 Suppose you were designing the first minivan to compete against the other five. Looks like you have a pretty good design.
 
@@ -354,7 +359,7 @@ m1.rpar
 ```
 
 ```
-   seat7    seat8 cargo3ft   enggas   enghyb  price35  price40 
+   seat7    seat8 cargo3ft   enghyb  engelec  price35  price40 
      "n"      "n"      "n"      "n"      "n"      "n"      "n" 
 ```
 
@@ -468,12 +473,12 @@ predict.hier.mnl(m2.hier, data=new.data)
 
 ```
    colMeans(shares) seat cargo  eng price
-8        0.45369314    7   2ft  hyb    30
-1        0.18472196    6   2ft  gas    30
-3        0.13321905    8   2ft  gas    30
-41       0.01794268    7   3ft  gas    40
-49       0.05410889    6   2ft elec    40
-26       0.15631428    7   2ft  hyb    35
+8        0.08959674    7   2ft  hyb    30
+1        0.46390066    6   2ft  gas    30
+3        0.34231092    8   2ft  gas    30
+41       0.05370156    7   3ft  gas    40
+49       0.01797406    6   2ft elec    40
+26       0.03251606    7   2ft  hyb    35
 ```
 
 Going Bayesian

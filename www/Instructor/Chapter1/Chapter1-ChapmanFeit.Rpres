@@ -37,7 +37,7 @@ type: prompt
 
 ![](Feit.jpg)
 
-**Dr. Elea McDonnell Feit** is an Assistant Professor of Marketing at Drexel University and a Senion Fellow of the Wharton Customer Analytics Initiative. 
+**Dr. Elea McDonnell Feit** is an Assistant Professor of Marketing at Drexel University and a Senior Fellow of the Wharton Customer Analytics Initiative. 
 What is R?
 ========================================================
 

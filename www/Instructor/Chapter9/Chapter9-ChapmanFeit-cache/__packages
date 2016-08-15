@@ -2,14 +2,3 @@ base
 knitr
 gpairs
 lattice
-zoo
-timeDate
-forecast
-car
-vcd
-ggplot2
-Matrix
-lme4
-coda
-MASS
-MCMCpack

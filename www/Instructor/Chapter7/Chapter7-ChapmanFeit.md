@@ -171,7 +171,7 @@ List of 12
  $ df.residual  : int 498
  $ xlevels      : Named list()
  $ call         : language lm(formula = overall ~ rides, data = sat.df)
- $ terms        :Classes 'terms', 'formula' length 3 overall ~ rides
+ $ terms        :Classes 'terms', 'formula'  language overall ~ rides
   .. ..- attr(*, "variables")= language list(overall, rides)
   .. ..- attr(*, "factors")= int [1:2, 1] 0 1
   .. .. ..- attr(*, "dimnames")=List of 2
@@ -188,7 +188,7 @@ List of 12
  $ model        :'data.frame':	500 obs. of  2 variables:
   ..$ overall: int [1:500] 47 65 61 37 68 27 40 30 58 36 ...
   ..$ rides  : int [1:500] 87 87 85 88 84 81 77 82 90 88 ...
-  ..- attr(*, "terms")=Classes 'terms', 'formula' length 3 overall ~ rides
+  ..- attr(*, "terms")=Classes 'terms', 'formula'  language overall ~ rides
   .. .. ..- attr(*, "variables")= language list(overall, rides)
   .. .. ..- attr(*, "factors")= int [1:2, 1] 0 1
   .. .. .. ..- attr(*, "dimnames")=List of 2
@@ -273,18 +273,18 @@ lm(formula = y ~ x)
 
 Residuals:
     Min      1Q  Median      3Q     Max 
--3.7456 -1.0233 -0.1887  0.7653  7.5366 
+-3.9241 -1.0369 -0.1899  0.6904 13.2698 
 
 Coefficients:
             Estimate Std. Error t value Pr(>|t|)    
-(Intercept)  1.00933    0.07417  13.608   <2e-16 ***
-x           -0.18848    0.07381  -2.554    0.011 *  
+(Intercept)  0.98632    0.08111  12.160   <2e-16 ***
+x            0.14705    0.08380   1.755   0.0799 .  
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-Residual standard error: 1.658 on 498 degrees of freedom
-Multiple R-squared:  0.01293,	Adjusted R-squared:  0.01094 
-F-statistic: 6.521 on 1 and 498 DF,  p-value: 0.01096
+Residual standard error: 1.814 on 498 degrees of freedom
+Multiple R-squared:  0.006146,	Adjusted R-squared:  0.00415 
+F-statistic:  3.08 on 1 and 498 DF,  p-value: 0.0799
 ```
 
 Model assumptions

@@ -606,10 +606,10 @@ body {
 }
 
 .reveal pre code {
-  display: block; padding: 0.2em;
-  font-size: 1.4em;
-  line-height: 1.0em;
-  background-color: white;
+  display: block; padding: 0.1em;
+  font-size: 1.2em;
+  line-height: 1.1em;
+  background-color: gainsboro;
   overflow: visible;
   max-height: none;
   word-wrap: normal;
@@ -840,12 +840,12 @@ body {
 }
 
 .reveal .slides section .slideContent h2 {
-   font-size: 1.3em;
+   font-size: 1.2em;
    font-weight: bold;
 }
 
 .reveal .slides section .slideContent h3 {
-   font-size: 1.1em;
+   font-size: 1.0em;
    font-weight: bold;
 }
 
@@ -1130,7 +1130,7 @@ hljs.initHighlightingOnLoad();
 <h1>R for Marketing Research and Analytics</h1><p>Chris Chapman and Elea McDonnell Feit<br/>January 2016</p>
 
 <div class="slideContent" >
-<p><strong>Chapter 1</strong>  </p>
+<p><strong>Chapter 1: Welcome to R</strong>  </p>
 
 <p>Website for all data files:<br/>
 <a href="http://r-marketing.r-forge.r-project.org/data.html">http://r-marketing.r-forge.r-project.org/data.html</a></p>
@@ -1138,14 +1138,16 @@ hljs.initHighlightingOnLoad();
 </div>
 
 </section>
-<section data-state="prompt" data-transition="linear" data-transition-speed="default">
+<section data-transition="linear" data-transition-speed="default">
 
 <div class="column column1 slideContent noTitle" >
 <ul>
-<li>These slides are a companion to the book <a href="http://r-marketing.r-forge.r-project.org/">R for Marketing Research and Analtyics</a>.
+<li>These slides are a companion to the book <a href="http://r-marketing.r-forge.r-project.org/">R for Marketing Research and Analtyics</a>. The book is for: 
 
 <ul>
-<li>The book is a hands-on introduction to R with examples based on the typical tasks faced by marketing researchers and marketing analytics professionals. </li>
+<li>Marketing research practitioners seeking to learn R. </li>
+<li>Data scientists interesting in marketing applications. </li>
+<li>Marketing students and academics interested in practical applications. </li>
 </ul></li>
 <li>Companion code files are available at (<a href="http://r-marketing.r-forge.r-project.org/">http://r-marketing.r-forge.r-project.org/</a>), but we suggest you <strong>type</strong> each line of code, to begin developing your R skills.</li>
 </ul>
@@ -1170,7 +1172,7 @@ hljs.initHighlightingOnLoad();
 
 <p><img src="data:image/jpeg;base64,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" alt=""/></p>
 
-<p><strong>Dr. Elea McDonnell Feit</strong> is an Assistant Professor of Marketing at Drexel University and a Senion Fellow of the Wharton Customer Analytics Initiative. </p>
+<p><strong>Dr. Elea McDonnell Feit</strong> is an Assistant Professor of Marketing at Drexel University and a Senior Fellow of the Wharton Customer Analytics Initiative. </p>
 
 </div>
 
@@ -1213,7 +1215,7 @@ and application to real problems. </p>
 <section data-transition="linear" data-transition-speed="default">
 <h3>Why R?</h3>
 <div class="slideContent" >
-<p>If it&#39;s hard and slow, why is it worth it?</p>
+<p>If it&#39;s hard to learn, why is it worth it?</p>
 
 <p>For some users, R is too much. If you don&#39;t like programming, you likely 
 will not like R. On the other hand:</p>
@@ -1340,7 +1342,7 @@ function commandsForSlide(indexh) {
       transition: 'linear',
       transitionSpeed: 'default',
       rtl: false,
-      width: 1024,
+      width: 1300,
       height: 768,
     
       dependencies: []

@@ -229,7 +229,7 @@ by(store.df$p1sales, list(store.df$storeNum, store.df$Year), mean)
 
 aggregate()
 ========
-**`aggregate()`** collects results similar to `by()` as an indexable object:
+`aggregate()` collects results similar to `by()` into an object:
 ```{r}
 storeMean <- aggregate(store.df$p1sales, 
                        by=list(store=store.df$storeNum), mean)

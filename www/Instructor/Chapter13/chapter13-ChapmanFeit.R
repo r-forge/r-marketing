@@ -31,8 +31,11 @@
 # Chapter 13 -- Choice Models and Conjoint Analysis
 
 ##### Load data from website, if you prefer not to simulate it
-cbc.df <- read.csv("http://goo.gl/5xQObB", 
-                   colClasses = c(seat = "factor", price = "factor"))
+cbc.df <- read.csv("http://goo.gl/5xQObB",
+                   colClasses = c(seat = "factor", price = "factor",
+                   choice="integer"))
+cbc.df$eng <- factor(cbc.df$eng, levels=c("gas", "hyb", "elec"))
+cbc.df$carpool <- factor(cbc.df$carpool, levels=c("yes", "no"))
 summary(cbc.df)
 #####
 
@@ -40,7 +43,7 @@ summary(cbc.df)
 
 ## Simulate data
 
-attrib <- list(seat = c("6", "7", "8"), 
+attrib <- list(seat = c("6", "7", "8"),
                cargo = c("2ft", "3ft"),
                eng = c("gas", "hyb", "elec"), 
                price = c("30", "35", "40"))
@@ -220,7 +223,7 @@ predict.hier.mnl <- function(model, data, nresp=1000) {
   # Note that this code assumes all model parameters are random
   data.model <- model.matrix(update(model$formula, 0 ~ .), data = data)[,-1]
   coef.Sigma <- cov.mlogit(model)
-  coef.mu <- m2.hier$coef[1:dim(coef.Sigma)[1]]
+  coef.mu <- model$coef[1:dim(coef.Sigma)[1]]
   draws <- mvrnorm(n=nresp, coef.mu, coef.Sigma)
   shares <- matrix(NA, nrow=nresp, ncol=nrow(data))
   for (i in 1:nresp) {

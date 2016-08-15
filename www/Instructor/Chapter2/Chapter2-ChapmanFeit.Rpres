@@ -23,8 +23,6 @@ $\rightarrow$ We'll cover some of the basic object types in R
 $\rightarrow$ Objects in R include variables, data sets, and functions
 
 
-
-
 Basic objects
 ========
 The assignment operator <- assigns a value to a named object.
@@ -187,8 +185,8 @@ Negative indexing
 ========
 A negative index omits elements (returns everything else):
 ```{r}
-xSeq+10
-xSeq+10[-5:-7]
+xSeq
+xSeq[-5:-7]
 ```
 
 

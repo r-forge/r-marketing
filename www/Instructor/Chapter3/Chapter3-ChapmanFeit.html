@@ -1636,7 +1636,7 @@ store.df$storeNum: 120
 <section data-transition="linear" data-transition-speed="default">
 <h3>aggregate()</h3>
 <div class="slideContent" >
-<p>**<code>aggregate()</code>** collects results similar to <code>by()</code> as an indexable object:</p>
+<p><code>aggregate()</code> collects results similar to <code>by()</code> into an object:</p>
 
 <pre><code class="r">storeMean &lt;- aggregate(store.df$p1sales, 
                        by=list(store=store.df$storeNum), mean)

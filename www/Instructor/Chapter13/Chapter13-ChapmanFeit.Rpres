@@ -66,7 +66,12 @@ Load some choice data
 cbc.df <- 
   read.csv("http://goo.gl/5xQObB", 
            colClasses = c(seat = "factor", 
-                          price = "factor"))  
+                          price = "factor", 
+                          choice="integer"))
+cbc.df$eng <- factor(cbc.df$eng, 
+                    levels=c("gas", "hyb", "elec"))
+cbc.df$carpool <- factor(cbc.df$carpool, 
+                         levels=c("yes", "no"))
 head(cbc.df[,c(-4, -5)])
 ```
 Note that the dependant variable in the last column is *multinomial*...a choice from among multiple options.
