@@ -32,7 +32,10 @@
 
 ##### Load data from website, if you prefer not to simulate it
 cbc.df <- read.csv("http://goo.gl/5xQObB", 
-                   colClasses = c(seat = "factor", price = "factor"))
+                   colClasses = c(seat = "factor", price = "factor", 
+                                  choice="integer"))
+cbc.df$eng <- factor(cbc.df$eng, levels=c("gas", "hyb", "elec"))
+cbc.df$carpool <- factor(cbc.df$carpool, levels=c("yes", "no"))
 summary(cbc.df)
 #####
 
@@ -96,7 +99,7 @@ for (i in seq_along(resp.id)) {
 }  
 
 # cleanup! -- not in book:
-rm(a, i, resp.id, carpool, mu, Sigma, coefs, coef.names,
+rm(a, i, resp.id, carpool, mu, Sigma, coefs, coef.names, attrib,
    conjoint.i, profiles, profiles.i, profiles.coded, utility, 
    wide.util, probs, choice, nalt, nques)
 # Try it!: ls()
@@ -220,7 +223,7 @@ predict.hier.mnl <- function(model, data, nresp=1000) {
   # Note that this code assumes all model parameters are random
   data.model <- model.matrix(update(model$formula, 0 ~ .), data = data)[,-1]
   coef.Sigma <- cov.mlogit(model)
-  coef.mu <- m2.hier$coef[1:dim(coef.Sigma)[1]]
+  coef.mu <- model$coef[1:dim(coef.Sigma)[1]]
   draws <- mvrnorm(n=nresp, coef.mu, coef.Sigma)
   shares <- matrix(NA, nrow=nresp, ncol=nrow(data))
   for (i in 1:nresp) {
