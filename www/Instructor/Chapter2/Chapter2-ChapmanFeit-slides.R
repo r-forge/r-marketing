@@ -102,8 +102,8 @@ xNum[myStart:sqrt(myStart+7)]
 
 # Negative indexing
 # ==========
-xSeq+10
-xSeq+10[-5:-7]
+xSeq
+xSeq[-5:-7]
 
 
 # Indexing with Boolean

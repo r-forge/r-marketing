@@ -11,13 +11,14 @@
 cbc.df <- 
   read.csv("http://goo.gl/5xQObB", 
            colClasses = c(seat = "factor", 
-                          price = "factor",
+                          price = "factor", 
                           choice="integer"))
-cbc.df$eng <- factor(cbc.df$eng,
-                     levels=c("gas", "hyb", "elec"))
-cbc.df$carpool <- factor(cbc.df$carpool,
+cbc.df$eng <- factor(cbc.df$eng, 
+                    levels=c("gas", "hyb", "elec"))
+cbc.df$carpool <- factor(cbc.df$carpool, 
                          levels=c("yes", "no"))
 head(cbc.df[,c(-4, -5)])
+
 
 # Summarize the choices
 # ==========
@@ -227,7 +228,7 @@ predict.hier.mnl <- function(model, data, nresp=1000) {
     model.matrix(update(model$formula, 0 ~ .), 
                  data = data)[,-1]
   coef.Sigma <- cov.mlogit(model)
-  coef.mu <- model$coef[1:dim(coef.Sigma)[1]]
+  coef.mu <- m2.hier$coef[1:dim(coef.Sigma)[1]]
   draws <- mvrnorm(n=nresp, coef.mu, coef.Sigma)
   shares <- matrix(NA, nrow=nresp, ncol=nrow(data))
   for (i in 1:nresp) {

@@ -11,6 +11,7 @@ filelist <- c(
   "Chapter6/Chapter6-ChapmanFeit",
   "Chapter7/Chapter7-ChapmanFeit",
   "Chapter9/Chapter9-ChapmanFeit",
+  "Chapter11/Chapter11-ChapmanFeit",
   "Chapter12/Chapter12-ChapmanFeit",
   "Chapter13/Chapter13-ChapmanFeit"
 )
