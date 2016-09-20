@@ -147,9 +147,14 @@
                 <hr>
                 
                 <h3>Using the slides</h3>
-                The files here represent three different views of the material:
+                The files here represent three different views of the material:<br><br>
                 <ul>
-                    <li><b><i>Slides</i>: HTML and PDF</b>. These are slides ready to present.</li>
+                    <li><b><i>Slides</i>: HTML and PDF</b>. The HTML links are slides ready to present in the browser. Note that <i>the HTML display is the slide</i>; there is no PowerPoint or other file to download.</li>
+                    <ul>
+                        <li>To advance from slide to slide, use the navigation icons on the slides, or the cursor keys (left, right).</li>
+                        <li>To see all slides, you can use "o" to see an overview.</li>
+                        <li>For the 2 PDF chapters, you can download the PDF (or display in browser).</li>
+                    </ul>
                     <li><b><i>Slide code</i>:</b></li>
                     <ul>
                         <li><b>.R files</b>: These are generated from the markdown files and contain code snippets as shown in  the slides. They could be used by students in class to step through the code chunks being discussed.    <i>Suggested usage</i>: students could copy and paste the full .R file into the RStudio editor and step through it during class.</li>
@@ -159,6 +164,9 @@
                     <ul>
                         <li>Rpres files are specific to markdown in RStudio. If you build new slides, you may need to download linked JPGs or other images.</li>
                         <li>If you edit or add code to the .RPres files, you may wish to create .R code files that match your customized slides. The R script we use to generate the .R files as listed above is here: <a href="slides-code-extractor.R">R code extractor for slides</a>. To use it, edit the working directory, file list, and definition of "infile" and "outfile" to match your setup.</li>
+                        <ul>
+                            <li>Note: a standard way to extract text from .Rpres/.Rmd file is the knitr::purl() function. (The script here is provided because it may be more easily customizable for classroom purposes.)</li>
+                        </ul>
                     </ul>
 
                 </ul>
