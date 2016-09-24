@@ -1,5 +1,6 @@
 # get R code from .Rpres file and make a .R file
-#
+# 
+# nb: using knitr:purl is another option (more powerful but less targeted/customized)
 
 wd <- "/Users/cchapman/Documents/Chris Documents/papers/repos/RIntroBook/Instructor/"
 

@@ -1080,6 +1080,39 @@ plot(sub.ind.p, xlab="Holdout respondent", ylab="Likelihood")
 We can target respondents by likelihood, relative to value of subscribing.
 
 
+Does the targeting work?
+=====
+Finding likelihoods with a model does not answer it will work; checking with holdout data is 
+necessary. (Ideally also check in a new sample).
+
+Compare subscription rates in holdout data, for likelihood $\ge$ 0.5 vs. lower:
+
+
+```r
+table(targeted=sub.ind.p >= 0.5, sub.df.test$subscribe)
+```
+
+```
+        
+targeted subNo subYes
+   FALSE    79      9
+   TRUE     11      6
+```
+
+```r
+chisq.test(table(sub.ind.p>=0.5, sub.df.test$subscribe))
+```
+
+```
+
+	Pearson's Chi-squared test with Yates' continuity correction
+
+data:  table(sub.ind.p >= 0.5, sub.df.test$subscribe)
+X-squared = 5.4073, df = 1, p-value = 0.02005
+```
+
+
+
 Conclusion: A Few Key Points
 =====
 Segmentation is not a method, but a _process_ that must focus clearly on 
