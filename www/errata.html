@@ -91,6 +91,23 @@ summary(cbc.df)
                         </td>
                     </tr>                    
 
+            <tr class="rowA">
+                       <td>369</td>
+                         <td>In the printed book, the <code>rm()</code> line is misplaced, and should occur after the final "<code>}</code>" that closes the <code>for</code> loop:<br><br>
+                        <pre>
+  ...
+  cbc.df <- rbind(cbc.df, conjoint.i)
+}   # <-- goes here, not at end
+
+# Tidy up, keeping only cbc.df and attrib
+rm(a, i, resp.id, carpool, mu, Sigma, coefs, coef.names,
+     conjoint.i, profiles, profiles.i, profiles.coded, utility,
+     wide.util, probs, choice, nalt, nques)
+</pre><br>
+                        The .R code file for Chapter 13 is correct; this applies only to the print version.
+                        </td>
+                </tr>                    
+
                     
                    <tr class="rowB">
                        <td>384</td>
