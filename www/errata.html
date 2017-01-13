@@ -46,6 +46,16 @@
                         <th>Page</th>
                         <th>Change</th>
                     </tr>
+                    <tr class="rowA">
+                        <td>101</td>
+                        <td>In the printed book, the code and caption for Figure 4.10 refer to <code>cust.df$store.trans</code> but the plot shows <code>cust.df$store.spend</code>. Although the lesson is the same with either variable, code to generate the plot as shown is:<br><br>
+<pre>
+plot(cust.df$distance.to.store, cust.df$store.spend)
+plot(1/sqrt(cust.df$distance.to.store), cust.df$store.spend)
+</pre><br>
+                            The .R code file for Chapter 4 is correct; this erratum applies only to the printed code.
+                        </td>
+                    </tr>
                    <tr class="rowB">
                        <td>116</td>
                         <td>The first code block should index along <code>i.seq</code> in the loop instead of <code>NULL</code>, as follows:<br><br>
@@ -104,7 +114,7 @@ rm(a, i, resp.id, carpool, mu, Sigma, coefs, coef.names,
      conjoint.i, profiles, profiles.i, profiles.coded, utility,
      wide.util, probs, choice, nalt, nques)
 </pre><br>
-                        The .R code file for Chapter 13 is correct; this applies only to the print version.
+                        The .R code file for Chapter 13 is correct; this erratum applies only to the printed code.
                         </td>
                 </tr>                    
 
