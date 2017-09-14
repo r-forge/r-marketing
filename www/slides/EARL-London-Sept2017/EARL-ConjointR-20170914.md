@@ -56,7 +56,7 @@ Respondents might answer 8-12 of these types of questions (sometimes more!), whi
 
 The models & software
 ========================================================
-Respondents' choices are modeled as **multinomial** responses (choice among alternatives), where likelihood to choose a product is a *function of its features and price*. We'll see details in a moment.
+Respondents' choices are modeled as conditional **multinomial** responses (choice among alternatives), modeling the likelihood to choose a product as a *function of its features and price*. (We'll see details in a moment.)
 
 Data collection --- the survey itself --- is commonly done using **Sawtooth Software**, a survey platform used to design a questionnaire, field it online, and analyze results.
 
@@ -72,11 +72,12 @@ A more extensive version of the code is at the website for Chapman and Feit (201
 
 [goo.gl/j8oUez](goo.gl/j8oUez) == [http://r-marketing.r-forge.r-project.org/](http://r-marketing.r-forge.r-project.org/)
 
+You'll want the "Code" tab, and the .R file for Chapter 13.
 
 
 Load some choice data
 =======================================================
-Data comes from Chapman & Feit (2015):
+Data is **simulated** and comes from Chapman & Feit (2015):
 
 ```r
 cbc.df <-
@@ -263,7 +264,7 @@ predict.mnl <- function(model, data) {
 
 Simulating choice shares: output
 ======================================================
-Given some defined products (rows 8, 1, 3, etc., in design matrix):
+Given some defined products (rows 8, 1, 3, etc., from a design matrix):
 
 
 ```r
@@ -463,10 +464,10 @@ title: false
 ![Chapman & Feit](chapmanfeit.jpg)
 ***
 - Applied tutorials on R and statistics for industrial problems.
-- Covers basic R topics (data structures, graphing, linear models, ANOVA) using marketing examples.
-- Tackles many marketing-specific topics including marketing mix modeling, segmentation, perceptual maps, structural equation modeling, choice modeling, hierarchical models.
+- Uses conceptual, minimally mathematical exposition.
+- Basic R topics (data structures, graphing, linear models, ANOVA) use marketing examples.
+- Advanced topics include marketing mix modeling, segmentation, perceptual maps, structural equation modeling, choice modeling, hierarchical models.
 - Integrates Bayesian estimation.
-
 
 
 Thank you!
@@ -474,13 +475,16 @@ Thank you!
 type: prompt
 **Chris Chapman**   
 Principal Quantitative Experience Researcher, Google  
-cnchapman+r@gmail.com
+cnchapman+r@gmail.com  
 @cnchapman
 
 **Elea McDonnell Feit**  
 Assistant Professor of Marketing, Drexel University  
-efeit@drexel.edu
+efeit@drexel.edu  
 @eleafeit
+
+These slides as an RStudio notebook:  
+[https://goo.gl/vsrenL](https://goo.gl/vsrenL)
 
 Notes
 =====================================================
