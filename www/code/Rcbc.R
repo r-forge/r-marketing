@@ -1,14 +1,14 @@
 ###################################
-# Rcbc package 0.20-1
-# Copyright 2013 Google Inc.
+# Rcbc package 0.30
+# Copyright 2013-2018 Google Inc.
 #
-# Marketing research tools for choice-based conjoint analysis
+# Marketing research tools for Choice-Based Conjoint Analysis and MaxDiff
 #
-# Authors: Christopher N. Chapman    James L. Alford          Steven Ellis
-#          cchapman@google.com       jalford0974@yahoo.com    elliss@google.com
+# Authors: Christopher N. Chapman    Eric Bahna         James L. Alford          Steven Ellis       
+#          cchapman@google.com       bahna@google.com   jalford0974@yahoo.com    elliss@google.com  
 #
-# Last update: September 24, 2013
-# Version: 0.20-1
+# Last update: March 1, 2018
+# Version: 0.30
 
 #################################################################
 # BRIEF HOW TO USE
@@ -28,16 +28,13 @@
 
 # REQUEST
 # The authors kindly request citation when used for published work, either:
-#   Chapman, C.N., Alford, J.L., and Ellis, S. (2013). Rcbc: Marketing 
-#     research tools for choice-based conjoint analysis, 
-#     version 0.20. [R package]
-# -- OR --
-#   Chapman, C.N., and Alford, J.L. (2010). Rcbc: Choice-based conjoint models 
-#     in R. Poster presented at the 2010 Advanced Research Techniques Forum 
-#     (A/R/T Forum), San Francisco, CA, June 2010.
-rcbc.citation.string <- paste("Citation:\nChapman, C.N., Alford, J.L., and",
-    "Ellis, S. (2013). Rcbc: Marketing research tools for choice-based",
-    "conjoint analysis, version 0.201. [R package]\n")
+#   Chapman, C.N., Bahna, E., Alford, J.L., and Ellis, S. (2018). Rcbc: Marketing 
+#     research tools for choice-based conjoint analysis and maxdiff, 
+#     version 0.30. [R package]
+
+rcbc.citation.string <- paste("Citation:\nChapman, C.N., Bahna, E., Alford, J.L., and",
+    "Ellis, S. (2018). Rcbc: Marketing research tools for choice-based",
+    "conjoint analysis and maxdiff, version 0.30. [R package]\n")
 
 # TRANSITION FROM PREVIOUS LICENSE
 #   This version of Rcbc is a derivative of previous versions that were offered
@@ -111,6 +108,10 @@ rcbc.citation.string <- paste("Citation:\nChapman, C.N., Alford, J.L., and",
 #       (technically, on the ability to predict those choices from utilities)
 #       NOTE: experimental. See Chapman's poster from 2010 A/R/T Forum.
 #
+#     md.hb() :
+#       estimate hierarchical Bayes model for MaxDiff data, with optional
+#       data augmentation (see md.augment() and md.plot.* functions for more)
+#
 #   SURVEY ASSISTANCE
 #     writeCBCdesignCSV()		:  
 #				Create a CSV version of a CBC survey for easy mockup and testing
@@ -158,6 +159,12 @@ rcbc.citation.string <- paste("Citation:\nChapman, C.N., Alford, J.L., and",
 #       rotates plot points around (0, 0) 
 #     cpm.se()								 :  
 #       simple utility function to calculate SEs and make code more compact
+#     read.md.cho() :
+#       read MaxDiff data from Sawtooth CHO format
+#     md.augment() :
+#       augment MaxDiff data per Bahna & Chapman (2018), Sawtooth Software Conf.
+#     plot.md.* () : 
+#       various plotting routines for MaxDiff results
 #     
 
 #########################
@@ -1734,10 +1741,1102 @@ extractHBbetas <- function(tmp.cmrlist, attr.list) {
 #
 #  END OF CBC FUNCTIONS
 #
+#  START OF MAXDIFF FUNCTIONS
+#
+###############################################
+###############################################
+
+
+#############################################################
+# maxdiff-functions.R    (component subversion 0.52s for Mar 2018 patch)
+#
+# Chris Chapman, cchapman@google.com
+# February 2018
+#
+
+#############################################################
+#############################################################
+# DOCUMENTATION
+# 
+# OVERVIEW:
+# These functions provide handling of MaxDiff data from Sawtooth Software 
+# and other survey platforms.
+# 
+# In particular, they take a CHO file exported from Sawtooth Software Lighthouse Studio,
+# reshape the data, estimate multinomial logit or Hierarchical Bayes models, 
+# and create various plots.
+#
+# Additionally the code implements an experimental "augmented maxdiff" model,
+# -- only for Sawtooth Software studies with a specific setup --
+# where respondents may respond to a subset of items. See: Bahna & Chapman,
+# "Constructed, Augmented MaxDiff", paper presented at the Sawtooth Software 
+# Conference, Orlando, Fl, March 2018.
+# 
+# REQUIRED LIBRARIES (depending on which functions you use)
+#   reshape2, ggplot2, mlogit, ChoiceModelR, Rmisc, matrixStats, superheat, corrplot
+#   ==> be sure to install these first, e.g.:
+#
+if (FALSE) {
+  install.packages(c("reshape2", "ggplot2", "mlogit", "ChoiceModelR", "Rmisc", 
+                     "matrixStats", "superheat", "corrplot"))
+}
+# ################
+# PROCEDURE TO USE:
+#   0. Field a MaxDiff survey and get its data
+#      This involves using Sawtooth Software and exporting the "CHO file" for the MaxDiff block.
+#      You will need that CHO file as a minimum to use the remainder of this script.
+#
+#   1. Define an "md.define" object (or whatever name you want) below. In particular, define:
+#      .. where your data files are
+#      .. the design parameters of your MaxDiff task (items, tasks, and items shown per task)
+#      .. any "friendly" item names that you want to use as labels on plots
+#      .. whether you want to use the augmented method (NOT unless survey was designed for it; see notes)
+#      ==> see Step 3 for more pointers
+#
+#   2. After that, use the functions defined below to read data, estimate a model, and plot.
+#      Here's a complete example, using a specified "md.define" study object as shown below:
+###
+### COMPLETE WALKTHROUGH
+###
+if (FALSE) {
+  # first,  make sure you have the libraries as noted above
+  # second, "source()" this entire file to make the functions available
+  # third,  set up "md.define" to define your study parameters, as noted below
+  #
+  test.read                <- read.md.cho(md.define)    # read the CHO data [from Sawtooth Software export]
+  md.define$md.block       <- test.read$md.block        # save the data back into our study object
+  
+  md.define$md.model.logit <- md.quicklogit(md.define)  # aggregate logit model (fast check)
+  summary(md.define$md.model.logit)
+  md.plot.logit(md.define)                              # plot the logit model estimates
+  # YES! Really, that's all -- top-level answers with 5 lines of code (after model setup)
+  
+  # Hierarchical Bayes, individual-level estimation 
+  test.hb <- md.hb(md.define, mcmc.iters = 2000)        # estimation (note: set mcmc.iters appropriately!)
+  md.define$md.model.hb    <- test.hb$md.model          # save the results into our study object
+  md.define$md.hb.betas    <- test.hb$md.hb.betas       # raw utilities by individual
+  md.define$md.hb.betas.zc <- test.hb$md.hb.betas.zc    # zero-centered diff scores by individual (rec'd)
+  rm(test.hb)
+  summary(md.define$md.hb.betas.zc)
+  
+  plot.md.range(md.define)                              # HB mean utilities (zero-centered) with credible intervals
+  
+  p <- plot.md.indiv(md.define)                         # create plot of HB model with individual mean betas
+  p + theme_minimal()                                   # can use other ggplot functions like ggtitle()
+}
+
+
+#############################################################
+#############################################################
+#
+# EXAMPLE STUDY DEFINITIONS
+# You MUST set up an object with:
+#    1. the locations of your files
+#    2. the overall design of your MaxDiff task
+#    3. options such as whether to do adaptive MaxDiff and short/friendly names you prefer
+# ==> Read each entry and update it as needed.
+
+#########################
+# SAWTOOTH SOFTWARE VERSION FOR STUDY SETUP
+#
+if (FALSE) {
+  md.define <- list(
+    # DATA SETUP - REQUIRED
+    # Working directory and file locations
+    file.wd          = "~/Downloads/Job/",
+    file.cho         = "MaxDiffExport/MaxDiffExport.cho",  # CHO export from Sawtooth export jobs, required
+    file.lab         = "MaxDiffExport/MaxDiffExport.val",  # VAL file from that same export location, optional
+    file.all         = "Export/Export.csv",                # full CSV export, only needed if using adaptive
+    # resp.rows        = NULL,                             # NOT YET IMPLEMENTED FOR SAWTOOTH [which rows of file to keep]
+    #                                                      # numbered as *line number in the CSV* (not resp number)
+    
+    # MAXDIFF DESIGN - REQUIRED
+    md.item.k        = 33,                                 # total # of items on maxdiff list
+    md.item.tasks    = 10,                                 # num of choice trials per respondent (max)
+    md.item.pertask  = 5,                                  # num of concepts shown in each trial
+    
+    # ITEM NAMES - OPTIONAL BUT RECOMMENDED
+    # Friendly names to use for the item labels in plots, etc.
+    # Set this to NULL if you want simpler "i1", "i2", etc, or want to read them from the VAL file
+    # Important: Order must exactly match the order in the data file, or things will be mislabeled!
+    md.item.names    = c('My.name.1',
+                         paste0("My.name.", 2:32),         # etc.
+                         'My.name.33'),
+    
+    # OPTIONAL: SETUP FOR AUGMENTED MAXDIFF (ADAPTIVE METHOD)
+    # these are magic numbers and must be selected to match your data
+    # nonsequential vectors (e.g., c(23, 24, 28, 32, 33)) are believed to work, but are not tested
+    #
+    # set this to FALSE (or delete this section) if your study is not an augmented study
+    # as noted in Bahna & Chapman (2018)
+    #
+    md.adapt         = TRUE,                               # use adaptive method to supplement choices?
+    tasks.rel        = 252:284,                            # columns of file.all with checkboxes for relevant
+    tasks.unimp      = 285:317,                            # columns of file.all with checkboxes for "important to me"
+    md.adapt.Imp     = 493:525,                            # columns of file.all that list items selected as "Important" 
+    md.adapt.NotImp  = 592:624,                            # columns of file.all that list "not important" items
+    
+    # REFERENCE: CHOICE DATA USED IN ESTIMATION
+    md.block         = NULL,                               # where we'll put choice data as it's read / augmented
+    md.csvdata       = NULL,                               # where we'll hold other survey data, if needed
+    md.nrow.preadapt = NULL,
+    
+    # REFERENCE: STATISTICAL RESULTS
+    md.model.logit   = NULL,                               # hold aggregate mlogit estimates
+    md.model.hb      = NULL,                               # hold HB model results
+    md.hb.betas      = NULL,                               # individual-level raw betas from HB model
+    md.hb.betas.zc   = NULL                                # individual-level zero-centered diffs from HB model
+  )
+}
+
+
+#############################################################
+#############################################################
+#
+# FUNCTION INDEX
+#
+# OVERVIEW:
+# You should NOT need to change anything inside the functions themselves.
+#
+# Note that each function is followed by a unit test section. You can 
+# use those tests as skeletons for your analyses.
+#
+
+# READING DATA
+#   read.md.cho(md.define)           # read a Sawtooth Software CHO file
+
+# AUGMENTING FOR ADAPTIVE METHOD
+#   md.augment(md.define)            # add coded choice tasks if using the "chapman/bahna" adaptive method
+
+# ESTIMATING MODELS
+#   md.quicklogit(md.define)         # multinomial aggregate logit model estimation (fast)
+#   md.hb(md.define, mcmc.iters)     # hierarchical Bayes estimation with individual-level estimates (rec'd but slow)
+
+# WORKING WITH ESTIMATES
+#   plot.md.range(md.define)         # plot overall mean & CI by item
+#   plot.md.indiv(md.define)         # plot individual betas + overall mean
+#   plot.md.heatmap(md.define)       # heatmap of utilities with biclustering
+#   plot.md.group(md.define, var.grouping)     # compare mean utilities & CI by a grouping factor such as role
+#
+# MISCELLANEOUS
+#   plot.md.relevant(md.define)      # if using "adaptive" method, plot relevant vs. unimportant items
+
+
+#############################################################
+#############################################################
+#
+# FUNCTIONS FOLLOW
+#
+# The functions should not require any editing.
+#
+# Note on plots: most plots here are ggplot2 objects. You can change their titles, labels,
+# themes, etc., by adding standard ggplot2 elements to them (as shown in "maxdiff-examples.R").
+#
+#############################################################
+#############################################################
+
+
+#############################################################
+#
+#   read.md.cho(md.define, opt.last.item.label)
+# 
+#   md.define            : the study definition object, used to locate the data file
+#   opt.last.item.label  : optional name for the final item, if you're not using friendly names but
+#                          have decided instead to use the names provided in a VAL file
+
+read.md.cho <- function(md.define, 
+                        opt.last.item.label="LAST ITEM (label not in VAL file") {
+  
+  ######
+  # 1. get CHO data
+  cat("Reading CHO file:", md.define$file.cho,"\n")
+  md.all.raw  <- read.csv(paste0(md.define$file.wd, md.define$file.cho), header=FALSE, stringsAsFactors=FALSE)
+  
+  ######
+  # 2. set up item names
+  #    to do: 
+  #        check length names matches item number
+  #        check VAL file exists before reading it
+  if (is.null(md.define$md.item.names)) {     # item names are not predefined, so ...
+    if (!is.null(md.define$file.lab)) {       # do we have a VAL file to get them from ?
+      md.name.raw <- read.csv(paste0(md.define$file.wd, md.define$file.lab), header=FALSE, stringsAsFactors=FALSE, sep="~")    # "sep="~" because want to read commas, etc.
+      md.names    <- as.character(md.name.raw[seq(from=1, to=nrow(md.name.raw), by=2), 1])
+      # note that the VAL file does not provide the label for the final MD item
+      # so if you're relying on the VAL file labels, you may want to define this one yourself
+      # ... but really it's better to define all the friendly names in setup (md.define$md.item.names) !
+      md.names    <- c(md.names, opt.last.item.label)  
+    } else {                                  # if not defined and no VAL, just assign numbers to the names
+      md.names <- paste0("i", 1:md.define$md.item.k)
+    }
+  } else {                                    # names have been defined so use those
+    md.names <- md.define$md.item.names
+  }
+  
+  md.names    <- gsub("<b>", "", md.names)
+  md.names    <- gsub("</b>", "99", md.names)
+  md.names    <- gsub("[[:punct:]]+", " ", md.names)
+  md.names    <- gsub("[[:cntrl:]]+", " ", md.names)
+  md.names    <- gsub("[[:space:]]+", ".", md.names)
+  md.names    <- gsub("[[:punct:]]+", ".", md.names)     # remove multiple periods
+  md.names    <- gsub("99.", "_", md.names)
+  
+  ######
+  # 3. reshape CHO data to wide format
+  md.block <- NULL         # where we will hold the data
+  
+  #    state variables -- we use a state machine to process the CHO
+  # 
+  i             <- 1       # which row of the file are we on?
+  data.line     <- 1       # where are we in the data frame we're creating?
+  state.new     <- TRUE    # are we at the start of a respondent? (after one or before any)
+  state.head    <- FALSE   # are we in a block header before any choice tasks?
+  resp.num      <- NA      # which respondent are we processing, if any?
+  state.block   <- FALSE   # are we in a BW choice block for the respondent?
+  block.line    <- NA      # which line of a block are we on
+  block.count   <- NA
+  expect.attrs  <- NA      # how many attrs the CHO tells us to expect for a respondent
+  expect.trials <- NA      # how many B/W trials a respondent block will have
+  expect.conc   <- NA      # number of concepts in each trial
+  saw.inc.block <- 0       # have we seen an incomplete block in the CHO? (warn and set)
+  resp.counter  <- 0       # number of respondents processed
+  warn.trials   <- FALSE   # have we warned about expected number of trials not matching CHO ?
+  
+  #    CHO file constants (cf. https://www.sawtoothsoftware.com/help/issues/ssiweb/online_help/hid_web_cbc_choformat.htm) 
+  cho.head.len <- 5      # vars on first line of a CHO. pos1=resp ID. pos3=kMDitems-1. pos4=kMDsets
+  cho.task.len <- 2      # " " on line 3. pos1=kMDperset (concepts per trial)
+  cho.choi.len <- 2      # " " for final line of CHO trial block (best or worst). pos1=concept that "won"
+  
+  #    iterate over CHO and build up choices, processing each line by state
+  #
+  cat("Reformatting respondent records ...\n")
+  while (i <= nrow(md.all.raw)) {
+    # strip leading white space from line
+    line.trim <- gsub("^\\s+|\\s+$", "", md.all.raw[i, ])
+    
+    # break the line into separate numbers, space-delimited  
+    line.data <- as.numeric(strsplit(line.trim, "[[:space:]]+")[[1]])
+    
+    if (length(line.data) == cho.head.len) {
+      # found respondent header. Save respondent number and continue.
+      if (state.new) {
+        state.new     <- FALSE
+        state.head    <- TRUE
+        resp.num      <- line.data[1]
+        expect.attrs  <- line.data[3]
+        expect.trials <- line.data[4]
+        if (!warn.trials & expect.trials != md.define$md.item.tasks*2) {
+          warning("Expected ", md.define$md.item.tasks, " trials but CHO defines ", expect.trials/2)
+          warn.trials <- TRUE
+        }
+        state.block   <- TRUE
+        resp.counter  <- resp.counter + 1
+        if (resp.counter==1 | resp.counter %% 20 == 0) {
+          cat("Reformatting respondent: ", resp.counter, " expecting ", expect.trials / 2, "trials.\n")
+        }
+      } else {
+        warning("Line ", i, " apparent new respondent ", line.data[1], ", but not expected.")
+      }
+      
+    } else if (state.block & state.head & length(line.data) == cho.task.len) {
+      # start of best block, pick out the number of trials
+      expect.conc   <- line.data[1]
+      block.line    <- 0
+      block.count   <- 1
+      state.head    <- FALSE
+      best.block    <- NULL
+      
+    } else if (state.block & (length(line.data) == (expect.attrs))) {
+      # inside a best block
+      block.line      <- block.line + 1
+      if (block.line > expect.conc) {
+        warning(paste("Line", i, "too many concepts observed", 
+                      expect.conc, "expected but", block.line, "observed : "), 
+                paste(line.data, collapse=" "))
+      }
+      best.block      <- rbind(best.block, line.data)
+      
+    } else if (state.block & !state.head & length(line.data) == cho.choi.len) {
+      # get the winning concept from end of block
+      block.data <- data.frame(win=0, resp.id=resp.num, best.block, 
+                               row.names=paste0("p", resp.num, "r", 1:nrow(best.block))) # FIX row names here
+      best.win   <- line.data[1]
+      if (best.win > 0) {
+        block.data[best.win, "win"] <- 1      # mark the actual winning row, if there is one
+      } else if (saw.inc.block==0) {
+        warning(paste("Line", i, "marks an incomplete block (no winning concept). \nNormal if incomplete respondents area included. Suppressing additional warnings."))
+        saw.inc.block <- 1
+      } else if (saw.inc.block > 0) {
+        saw.inc.block <- saw.inc.block + 1
+      }
+      
+      if (is.null(md.block)) {      # first time, so create it and pre-allocate more than we need
+        cat ("Preallocating data frame ...\n")
+        md.block <- block.data
+        md.preal <- block.data[rep(1, nrow(md.all.raw)), ]
+        # str(md.preal)
+        md.preal[1:nrow(md.preal), 1:ncol(md.preal)] <- NA
+        # str(md.preal)
+        md.block <- rbind(md.block, md.preal)
+        # str(md.block)
+        data.line <- data.line + nrow(block.data)
+      } else {
+        if (best.win > 0) {          # only add data for complete blocks with winners
+          md.block[data.line:(data.line+nrow(block.data)-1), ] <- block.data
+          data.line <- data.line + nrow(block.data)
+        }
+      }
+      
+      best.block <- NULL
+      state.head <- TRUE
+      block.line <- 0
+      if (block.count >= expect.trials) {      # should get expect.trials
+        # last trial
+        state.block  <- FALSE
+      } else {
+        block.count <- block.count + 1
+      } 
+      
+    } # end of all possible states
+    
+    i <- i + 1         # advance to next line
+    state.new <- TRUE  # for now. To do: switch after updating block.data; helpful for error check
+  }
+  
+  cat("Done. Read",resp.counter,"total respondents.\n")
+  
+  if (saw.inc.block > 0) {
+    warning("Observed ", saw.inc.block, " incomplete maxdiff response blocks. \nNormal if you've included incomplete respondents.")
+  }
+  
+  # cut the over-allocated data frame down to the actually observed size
+  cut.data.at <- min(which(is.na(md.block[ , 1])))   # the first row that has NA (preallocated) data
+  md.block    <- md.block[1:(cut.data.at-1), ]       # take the data frame up to there
+  
+  # # basic data checks
+  #   to do:
+  #           automate these and warn 
+  # str(md.block)         # should have expected columns / items
+  # head(md.block, 20)    # check choice structure, starting with 1s etc
+  # tail(md.block, 20)    # check structure, ending with final respondent correctly
+  
+  # check structure is what we expect from constants
+  #
+  total.resps <- length(unique(md.block$resp.id))
+  if (nrow(md.block) == total.resps * expect.trials * expect.conc) {
+    cat("Woohoo! Your data with", nrow(md.block), "rows matches expected rows, concepts, & trials for complete data :)\n")
+  } else {
+    cat("WARNING: Expected", total.resps * expect.trials * expect.conc, 
+        "rows, but found", nrow(md.block), ".\n",
+        "This is normal in case of incomplete respondents; otherwise should be investigated.\n")
+  }
+  
+  
+  # now add the omitted final column where needed (CHO for K items has only K-1 columns exported)
+  # 
+  
+  # which rows need a final column? those with no other attribute specified
+  md.last.rows <- which(apply(md.block, 1, function(x) sum(x[3:length(x)]))==0)   # all 0 --> row for dropped level
+  summary(md.last.rows)
+  
+  # now figure out whether it should be 1 or -1 ...
+  # NB: this only works because we assume exact & identical TRIALS per block
+  #
+  # TO DO: if exact block structure above is refactored, would need to change this
+  #        (presumably add state for best/worst and use that within block processing)
+  md.posneg    <- rep(rep(c(rep(1, expect.conc), rep(-1, expect.conc)), expect.trials/2), total.resps)
+  md.last.col  <- rep(0, nrow(md.block))
+  md.last.col[md.last.rows] <-  md.posneg[md.last.rows]
+  md.block <- cbind(md.block, md.last.col)
+  
+  # set names
+  rownames(md.block) <- NULL
+  md.block <- data.frame(md.block)
+  if (FALSE) {                            # just keep "i.." names for now
+    names(md.block)[3:ncol(md.block)] <- paste0("i",(1:md.define$md.item.k))
+  } else {
+    names(md.block)[3:ncol(md.block)] <- md.names[1:(length(md.names))]
+  }
+  # head(md.block, 40)
+  # library(car)
+  # car::some(md.block, 40)
+  
+  
+  # TO DO: make sure md.block names are all legal R variable names
+  
+  
+  # check (possible) Best / Worst levels in the data
+  # --> should be *exact* match within level for -1 vs 1; and similar frequencies across levels
+  #
+  # to do:
+  #         automate this, check equivalence and warn if not
+  
+  # apply(md.block, 2, table)   # see if we're balanced within & across levels
+  
+  # now cast the blocks into conditional format
+  md.block$choice.coded                         <- md.block$win
+  md.block$choice.coded[which(md.block$win==1)] <- 'yes'   # recode 1's into yes
+  md.block$choice.coded[which(md.block$win==0)] <- 'no'    # recode 0's into no 
+  md.block$choice.coded                         <- as.factor(md.block$choice.coded)
+  
+  return(list(md.block=md.block, md.item.names=md.names))
+}
+
+
+#############################################################
+#############################################################
+
+md.augment <- function(md.define) {
+  
+  md.block <- md.define$md.block         # copy of the data so we can munge it and return
+  
+  # set up blocks for basic CHO data before augmenting choice sets
+  md.block$chid          <- ceiling(1:nrow(md.block)/md.define$md.item.pertask)      
+  md.block$choice.coded  <- md.block$win
+  
+  if (!md.define$md.adapt) {
+    cat("Warning: Not augmenting. md.define is not set for augmentation.\n")
+    
+  } else {
+    # load full CSV data
+    cat("Reading full data set to get augmentation variables.\n\n")
+    full.data <- read.csv(paste0(md.define$file.wd, md.define$file.all))  
+    
+    cat("Importants:", md.define$md.adapt.Imp,"\n")
+    print(names(full.data)[md.define$md.adapt.Imp])
+    cat("Unimportants:", md.define$md.adapt.NotImp,"\n")
+    print(names(full.data)[md.define$md.adapt.NotImp])
+  }
+  
+  nrow.preadapt <- nrow(md.block)
+  if (md.define$md.adapt) {
+    
+    cat("\nAugmenting choices per 'adaptive' method. \nRows before adding:", nrow.preadapt, "\n")
+    
+    ## TO DO: some data quality tests and error recovery for full.data
+    
+    # set states for preallocation and placeholder
+    block.new  <- TRUE
+    
+    # loop over all respondents and add data ...
+    #
+    chid <- max(md.block$chid)+1                          # counter for choice blocks as we add them
+    cat ("\nAugmenting adaptive data for respondent:\n")
+    
+    md.supp                    <- md.block[1:4, ]   # a block we'll reuse for all the Imp x NotImp choices below
+    
+    for (i in unique(md.block$resp.id)) {
+      i.data   <- full.data[full.data$sys_RespNum==i, ]
+      itemsImp <- i.data[md.define$md.adapt.Imp]            # remove magic numbers
+      itemsImp <- na.omit(as.numeric(itemsImp))
+      itemsNotImp <- i.data[md.define$md.adapt.NotImp]       # remove magic numbers
+      itemsNotImp <- na.omit(as.numeric(itemsNotImp))
+      
+      if (length(itemsImp) > 0 & length(itemsNotImp) > 0) {
+        cat (i, " ")
+        cat("augmenting:", itemsImp, "%*% ")
+        cat(itemsNotImp, "\n")
+        for (imp in itemsImp) {
+          for (notimp in itemsNotImp) {
+            # set up an empty block of A vs. B choices to hold our augmented comparison
+            # structure is: Rows 1/2 == IMP vs. notIMP shown, IMP    == Best
+            #               Rows 3/4 == IMP vs. notIMP shown, notIMP == Worst
+            md.supp[ , 3:(md.define$md.item.k+2)] <- 0    # clear design matrix
+            md.supp$win                <- 0    # " "
+            # fill in our metadata
+            md.supp$resp.id            <- i
+            # set the best choices
+            md.supp[1, 2+imp]          <- 1
+            md.supp[2, 2+notimp]       <- 1
+            md.supp[1, "win"]          <- 1
+            md.supp[1:2, "chid"]       <- chid
+            # set the worst choices
+            md.supp[3, 2+imp]          <- -1
+            md.supp[4, 2+notimp]       <- -1
+            md.supp[4, "win"]          <- 1
+            md.supp[3:4, "chid"]       <- chid + 1
+            
+            # add the new choice set to the master choice data
+            # first, need to preallocate block ?
+            if (block.new) {                             # preallocate block
+              # max comparisons would be md.define$md.item.k/2 * (md.define$md.item.k-1)/2
+              # so allocate that many (+1 for odd cases) for each respondent * 4 comparison rows
+              nrow.prealloc      <- (md.define$md.item.k+1) %/% 2 * md.define$md.item.k %/% 2 * length(unique(md.block$resp.id)) * 4
+              md.block.new       <- md.block[rep(1, nrow.prealloc), ]
+              md.block.new[ , ]  <- 0                    # zero out the preallocated matrix
+              block.line         <- 1                    # counter for which line we're on as we fill it
+              block.new          <- FALSE                # don't preallocate again :)
+            }
+            
+            # put the new data into the preallocated block
+            md.block.new[block.line:(block.line+nrow(md.supp)-1), ] <- md.supp
+            block.line                                              <- block.line + nrow(md.supp)
+            
+            # advance counter of choice blocks
+            chid                       <- chid + 2
+          }
+        }
+      }
+    }
+    # keep only the preallocated rows we actually used
+    md.block.new <- md.block.new[1:(block.line-1), ]
+    # md.block.new <- md.block.new[md.block.new$resp.id > 0, ]
+    
+    md.block <- rbind(md.block, md.block.new)
+    cat ("done!\n\n")
+    cat("Rows after augmenting data:", nrow(md.block), "\n")
+  }
+  
+  # now cast the new blocks into conditional format
+  md.block$choice.coded                         <- md.block$win
+  md.block$choice.coded[which(md.block$win==1)] <- 'yes'   # recode 1's into yes
+  md.block$choice.coded[which(md.block$win==0)] <- 'no'    # recode 0's into no 
+  md.block$choice.coded                         <- as.factor(md.block$choice.coded)
+  # table(md.block$win, md.block$choice.coded)
+  
+  return(list(md.block=md.block, md.nrow.preadapt=nrow.preadapt, md.csvdata=full.data))
+  
+}
+
+
+#############################################################
+#############################################################
+
+#  note: usually only want the "preadapt" choice blocks; as is, data definition doesn't handle diff task sizes
+
+md.quicklogit <- function(md.define, preadapt.only=TRUE) {
+  md.block <- md.define$md.block
+  rownames(md.block) <- paste0("r", 1:nrow(md.block))
+  
+  # to do: integrate the block and row ("set" and "alt") from ChoiceModelR section below
+  #
+  
+  library(mlogit)
+  nrow.use <- ifelse(preadapt.only, 
+                     ifelse(is.null(md.define$md.nrow.preadapt), 
+                            nrow(md.block), 
+                            md.define$md.nrow.preadapt),
+                     nrow(md.block))
+  
+  mlogit.ready <- mlogit.data(md.block[1:nrow.use, ],    
+                              shape = "long", 
+                              choice = "choice.coded", 
+                              chid.var="chid",
+                              alt.levels=seq(1, md.define$md.item.pertask, 1), 
+                              id.var="resp.id")   # choice is the response, chid is the task id, alt.levels shows the options per task 
+  
+  mlogit.f.raw <- paste("choice.coded ~ 0 + ", 
+                        paste(names(md.block[3:(md.define$md.item.k+1)]), collapse=" + "))
+  mlogit.f     <- mFormula(as.formula(mlogit.f.raw))
+  cat("Estimating mlogit formula:\n", as.character(mlogit.f),"\n\n")
+  
+  
+  # estimation!
+  mlogit.model <- (mlogit(mlogit.f, data = mlogit.ready, probit = FALSE))
+  cat("Done.")
+  
+  return(mlogit.model)
+  
+}
+
+
+#############################################################
+#############################################################
+
+# item.disguise == should the labels be replace with generic names?
+
+md.plot.logit <- function(md.define, item.disguise=FALSE) {
+  
+  if (is.null(md.define$md.model.logit)) {
+    stop("No logit model present in md.define object.")
+  }
+  # get estimates to plot with CIs
+  mlogit.ci      <- data.frame(confint(md.define$md.model.logit))
+  mlogit.ci$mean <- md.define$md.model.logit$coefficients
+  names(mlogit.ci) <- c("ciLow", "ciHigh", "Mean")
+  if (item.disguise) {
+    mlogit.ci$Feature <- paste0("i", 1:length(rownames(mlogit.ci)))
+  } else {
+    mlogit.ci$Feature <- rownames(mlogit.ci)
+  }
+  
+  # reorder the results by median utility
+  md.order <- order(mlogit.ci[ ,3])
+  mlogit.ci$Feature <- factor(mlogit.ci$Feature, levels=mlogit.ci$Feature[md.order])
+  
+  library(ggplot2)
+  p <- ggplot(data=mlogit.ci, aes(x=Feature, y=Mean)) +
+    geom_errorbar(aes(ymin=ciLow, ymax=ciHigh)) +
+    geom_point() +
+    coord_flip() +
+    ylab("Relative Preference") +
+    ggtitle("Task Preference (aggregate model)")
+  
+  p
+}
+
+
+#############################################################
+#############################################################
+
+
+md.hb <- function(md.define, mcmc.iters=1000, mcmc.seed=runif(1, min=0, max=1e8), restart=FALSE) {
+  
+  cat("Setting up HB estimation with random seed", mcmc.seed, "\n")
+  md.block <- md.define$md.block
+  
+  if (mcmc.iters < 10000) {
+    warning("You appear to have 'mcmc.iters' set too low for a production run.\nThis is OK for testing, but increase for actual estimation!")
+  }
+  
+  ## .1: vector for the sequential order of tasks within best/worst blocks 
+  ## ... (called "Alt" by ChoiceModelR)
+  
+  # helper function to count sequential occurrences of 1s in a vector
+  best.seq <- function(x) {
+    Reduce(function(x, y) if (y == 0) 0 else x+y, x, accumulate=TRUE)    
+  }
+  
+  # get sequence of 1s for all the "best" alternatives (max(design cols) == 1)
+  task.seq.b <- best.seq( apply(md.block[ , 3:(md.define$md.item.k+2)], 1, max))
+  
+  # same for "worst" alternatives (min == -1)
+  task.seq.w <- best.seq(-apply(md.block[ , 3:(md.define$md.item.k+2)], 1, min))
+  
+  # get the united sequences for B and W -- the "Alt" sequence for ChoiceModelR
+  task.seq   <- pmax(task.seq.b, task.seq.w)    # ALT
+  
+  ## .2: vector for the sets of tasks within respondent (ChoiceModelR "Set")
+  ##
+  task.order <- function(which.resp) {
+    task.set              <- rep(0, sum(md.block$resp.id==which.resp))
+    which.first           <- which(task.seq[md.block$resp.id==which.resp]==1)
+    task.set[which.first] <- 1:length(which.first)
+    task.set              <- cummax(task.set)   
+    task.set
+  }
+  task.count <- rep(0, nrow(md.block))            # "SET"
+  for (i in unique(md.block$resp.id)) {
+    task.count[md.block$resp.id==i] <- task.order(i)
+  }
+  
+  ## .3: vector for wining concept's line within block, specified on line 1 ("y")
+  ## 
+  if (sum(md.block$win==1) != sum(task.seq==1)) {
+    stop("Some task blocks have no winner. CHO file may include incomplete data (not yet handled).")
+  }
+  task.win              <- rep(0, length(task.seq))
+  task.win[task.seq==1] <- task.seq[md.block$win==1]            # "y"
+  task.win
+  tail(task.win, 50)
+  
+  ## .4: put together the data for ChoiceModelR
+  cmr.block <- data.frame(UnitID = md.block$resp.id,
+                          Set    = task.count,
+                          Alt    = task.seq,
+                          md.block[ , 3:(md.define$md.item.k+2)], #+1
+                          y      = task.win)
+  
+  cmr.block <- cmr.block[order(cmr.block$UnitID), ]   # must be ordered by ID !
+  
+  ## .5: set up estimation parameters
+  ##
+  # set up ChoiceModelR parameters
+  tmp.coding <- rep(0, md.define$md.item.k) #-1                   # 0 = categorical coding for the attribute
+  pitersUsed <- 0.1                                    # last proportion of draws to sample from
+  tmp.mcmc   <- list(R = mcmc.iters, use = mcmc.iters*pitersUsed)
+  opt.restart <- restart & file.exists("restart.txt")            # automatically restarts if available
+  tmp.opt    <- list (none=FALSE, save=TRUE, keep=10, restart=opt.restart)               # no "none" values, save draws, keep every 10
+  
+  # .6: be sure to display graphics window to see convergence plot
+  # ... and run it!
+  library(ChoiceModelR)
+  
+  
+  ## .6a: Actual estimation
+  ## WARNING: SLOW! Est'd 1hr per 40K iterations
+  ##
+  set.seed(mcmc.seed)
+  cmr.out <- choicemodelr(data=cmr.block, 
+                          xcoding=tmp.coding, mcmc=tmp.mcmc, options=tmp.opt)
+  
+  
+  ## .7: get the betas per respondent
+  
+  # helper function
+  extractHBbetas <- function(tmp.cmrlist, attr.list) {
+    # figure out where the columns start and end without and with zero-sum PWs
+    from.ends <- cumsum(attr.list-1)
+    from.starts <- c(1, from.ends+1)
+    to.ends <- cumsum(attr.list)-1
+    to.starts <- c(1, to.ends+2)
+    
+    # create a matrix to hold all the answers
+    tmp.betas <- matrix(0, ncol=sum(attr.list), nrow=dim(tmp.cmrlist$betadraw)[1])
+    
+    # iterate over all the attributes and fill out the zero-sum matrix
+    for (i in 1:length(from.ends)) {
+      # get the slice of columns that represent a particular attribute's levels
+      # and find the per-respondent means across the draws
+      if(to.ends[i] > to.starts[i]) {
+        tmp.slice <- apply(tmp.cmrlist$betadraw[ , from.starts[i]:from.ends[i], ], 
+                           c(1,2), mean)
+        tmp.slicesum <- apply(tmp.slice, 1, sum)
+      } else {
+        tmp.slice <- apply(tmp.cmrlist$betadraw[, from.starts[i], ], 1, mean)        
+        tmp.slicesum <- tmp.slice
+      }    
+      tmp.betas[, to.starts[i]:to.ends[i]] <- tmp.slice
+      tmp.betas[, to.ends[i]+1] <- -1.0 * tmp.slicesum    
+    }
+    return(tmp.betas)
+  }
+  
+  # .71: get the individual-level average betas from ChoiceModelR model object
+  md.attrs <- rep(2, md.define$md.item.k)
+  cmr.beta <- extractHBbetas(cmr.out, md.attrs)[ , seq(from=1, to=md.define$md.item.k*2, by=2)]
+  
+  # .72: reshape the betas to a data frame
+  if (!is.null(md.define$md.item.names)) {
+    colnames(cmr.beta) <- md.define$md.item.names[1:md.define$md.item.k]
+  } else {
+    colnames(cmr.beta) <- names(md.define$md.block[3:(md.define$md.item.k+2)])
+  }
+  cmr.beta <- data.frame(cmr.beta)
+  
+  # .73: add respondent ID
+  cmr.beta$ID <- unique(cmr.block$UnitID)    # works b/c cmr.beta is really beta.mu (mean), so 1 ID per row
+  
+  
+  # .8: rescale within respondent for comparability
+  # Rescale to Zero-centered diffs, following steps noted at
+  # https://sawtoothsoftware.com/forum/6140/is-there-a-formula-for-calculating-the-zero-centered-diffs
+  
+  # we're going to make a new ".zc" frame to hold the results
+  cmr.beta.zc <- cmr.beta[ , 1:md.define$md.item.k]     # get just the utility columns, omitting ID
+  
+  cmr.beta.mu <- rowMeans(cmr.beta.zc)       # average utility per respondent
+  cmr.beta.zc <- cmr.beta.zc - cmr.beta.mu   # mean-centered within respondent  (step #1 from URL)
+  
+  library(matrixStats)
+  # total spread btw Min & Max across all attributes (step #2 from URL)
+  cmr.beta.zc.sumdiffs <- sum(colMaxs(as.matrix(cmr.beta.zc))-colMins(as.matrix(cmr.beta.zc)))  
+  cmr.beta.zc.mult     <- md.define$md.item.k * 100 / cmr.beta.zc.sumdiffs   # multiplier to rescale (step #3)
+  
+  # now recale the zero-centered utilities to that 100 pt scale
+  cmr.beta.zc <- cmr.beta.zc * cmr.beta.zc.mult     # (step #4 from URL)
+  
+  # check the diffs between min and max per attribute (should be 100 on average)
+  #
+  # TO DO:check these and warn if any problems
+  #
+  # colMaxs(as.matrix(cmr.beta.zc))-colMins(as.matrix(cmr.beta.zc))        # should be roughly 50-150 each
+  #mean(colMaxs(as.matrix(cmr.beta.zc))-colMins(as.matrix(cmr.beta.zc)))  # should be exactly 100
+  
+  # add the ID column back into it
+  cmr.beta.zc$ID <- cmr.beta$ID
+  
+  return(list(md.model.hb=cmr.out, md.hb.betas=cmr.beta, md.hb.betas.zc=cmr.beta.zc))
+}
+
+
+#############################################################
+#############################################################
+
+plot.md.range <- function(md.define, use.raw=FALSE, item.disguise=FALSE) {
+  if (use.raw & is.null(md.define$md.hb.betas)) {
+    stop("No raw betas present in md.define object.")
+  }
+  if (!use.raw & is.null(md.define$md.hb.betas.zc)) {
+    stop("No zero-centered diff scores present in md.define object.")
+  }
+  
+  # first get the data reshaped for plotting
+  library(reshape2)
+  library(ggplot2)
+  
+  if (use.raw) {
+    cmr.beta.zc <- md.define$md.hb.betas
+  } else {
+    cmr.beta.zc <- md.define$md.hb.betas.zc
+  }
+  
+  md.plot.df <- melt(cmr.beta.zc, id.vars="ID")
+  
+  # reorder the results by median utility
+  cmr.order <- order(unlist(lapply(cmr.beta.zc[ , -ncol(cmr.beta.zc)], mean)))   # drop last column b/c it's ID
+  
+  md.plot.df$variable <- factor(md.plot.df$variable, 
+                                levels=unique(md.plot.df$variable)[cmr.order])
+  if (item.disguise) {
+    levels(md.plot.df$variable) <- paste0("i", 1:length(unique(md.plot.df$variable)[cmr.order]))[cmr.order]
+  }
+  
+  # aggregate CIs by variable
+  library(Rmisc)
+  cmr.beta.agg <- group.CI(value ~ variable, md.plot.df)
+  head(cmr.beta.agg)
+  
+  y.center <- mean(cmr.beta.agg[, 3])
+  y.limits <- c(-max(abs(cmr.beta.agg[, 2:4])), max(abs(cmr.beta.agg[, 2:4]))+y.center)
+  
+  cmr.order <- order(cmr.beta.agg[ , 3])
+  cmr.beta.agg$variable <- factor(cmr.beta.agg$variable, 
+                                  levels=unique(cmr.beta.agg$variable)[cmr.order])
+  
+  library(ggplot2)
+  p <- ggplot(cmr.beta.agg, 
+              aes(x=variable, y=value.mean)) +
+    geom_point(size=2) +
+    geom_errorbar(aes(ymin=value.lower, ymax=value.upper)) +
+    ylab("Relative Preference") +
+    xlab("Feature") +
+    ggtitle("Preference by Task (overall average)") + 
+    # theme(axis.text.x=element_blank(), axis.ticks.x=element_blank()) +       # no scale labels
+    # ylim(y.limits) +                                                         # will center on mean score (adds white space)
+    geom_hline(yintercept=0, colour="darkred", linetype="dashed") +
+    coord_flip()
+  
+  p 
+  
+}
+
+
+#############################################################
+#############################################################
+
+# quasi-strip plot of individuals and the overall mean
+
+plot.md.indiv <- function(md.define, use.raw=FALSE, item.disguise=FALSE) {
+  if (use.raw & is.null(md.define$md.hb.betas)) {
+    stop("No raw betas present in md.define object.")
+  }
+  if (!use.raw & is.null(md.define$md.hb.betas.zc)) {
+    stop("No zero-centered diff scores present in md.define object.")
+  }
+  
+  # first get the data reshaped for plotting
+  library(reshape2)
+  library(ggplot2)
+  
+  if (use.raw) {
+    cmr.beta.zc <- md.define$md.hb.betas
+  } else {
+    cmr.beta.zc <- md.define$md.hb.betas.zc
+  }
+  
+  md.plot.df <- melt(cmr.beta.zc, id.vars="ID")
+  
+  # reorder the results by median utility
+  cmr.order <- order(unlist(lapply(cmr.beta.zc[ , -ncol(cmr.beta.zc)], mean)))   # drop last column b/c it's ID
+  
+  md.plot.df$variable <- factor(md.plot.df$variable, 
+                                levels=unique(md.plot.df$variable)[cmr.order])
+  if (item.disguise) {
+    levels(md.plot.df$variable) <- paste0("i", 1:length(unique(md.plot.df$variable)[cmr.order]))[cmr.order]
+  }
+  
+  p.resp <- length(unique(md.plot.df$ID))
+  p <- ggplot(data=md.plot.df, aes(x=variable, y=value)) +
+    geom_point(size=3, alpha=1/sqrt(p.resp), colour="darkblue") +
+    stat_summary(fun.y = "mean", colour = "red", size = 3, geom = "point", alpha=0.5) +  
+    geom_hline(yintercept=0, colour="darkred", linetype="dashed") +
+    coord_flip() +
+    xlab("Item") + ylab("Preference estimates (blue=individuals; red=overall)") +
+    ggtitle("Preference estimates: Overall + Individual level")
+  p
+  
+}
+
+
+############################################################
+#############################################################
+
+# Heat map for utility clusters
+
+plot.md.heatmap <- function(md.define, 
+                            use.raw=FALSE, rnd.seed=98103,             # seed to make clustering repeatable
+                            clus=c(4,5),                               # clus = c(rows, cols) for cluster grouping
+                            clus.method = "kmeans",                    # options: kmeans or hierarchical
+                            smooth.it=TRUE,                            # smooth=smooth over clusters
+                            item.disguise=FALSE,                       # disguise the item labels?
+                            col.scheme="viridis") {                    # options: viridis, red, purple, blue, grey, green
+  
+  if (use.raw & is.null(md.define$md.hb.betas)) {
+    stop("No raw betas present in md.define object.")
+  }
+  if (!use.raw & is.null(md.define$md.hb.betas.zc)) {
+    stop("No zero-centered diff scores present in md.define object.")
+  }
+  if (use.raw) {
+    cmr.beta.zc <- md.define$md.hb.betas
+  } else {
+    cmr.beta.zc <- md.define$md.hb.betas.zc
+  }
+  
+  if (item.disguise) {
+    colnames(cmr.beta.zc) <- paste0("i", 1:length(colnames(cmr.beta.zc)))
+  }
+  
+  set.seed(rnd.seed)
+  library(superheat)
+  superheat(t(cmr.beta.zc[ , 1:md.define$md.item.k]),
+            
+            left.label.size = 0.3,
+            bottom.label.size = 0.1,
+            
+            clustering.method = clus.method,          # "kmeans" (default here and for superheat) is recommended
+            
+            n.clusters.cols = clus[2],                # adjust up or down to tell a story
+            n.clusters.rows = clus[1],                # # " "
+            
+            smooth.heat = smooth.it,                   # include this to see median color by block;
+            
+            left.label = "variable",
+            left.label.text.size = 3,
+            
+            bottom.label = "variable",
+            bottom.label.text.size = 3,
+            bottom.label.text.angle = 90, 
+            
+            # change the color
+            heat.col.scheme = col.scheme           # options: viridis, red, purple, blue, grey, green
+  )
+}
+
+
+#############################################################
+#############################################################
+
+# plot.md.group(md.model, md.define, var.grouping)
+# Compare utilities for groups
+#
+# ==> NB: alpha version, only lighted tested
+
+plot.md.group <- function(md.define, vec.groups, 
+                          groups.to.plot=NULL,
+                          item.disguise=FALSE,
+                          use.raw=FALSE) {
+  
+  if (use.raw & is.null(md.define$md.hb.betas)) {
+    stop("No raw betas present in md.define object.")
+  }
+  if (!use.raw & is.null(md.define$md.hb.betas.zc)) {
+    stop("No zero-centered diff scores present in md.define object.")
+  }
+  if (use.raw) {
+    cmr.beta.zc <- md.define$md.hb.betas
+  } else {
+    cmr.beta.zc <- md.define$md.hb.betas.zc
+  }
+  if (length(vec.groups) != nrow(cmr.beta.zc)) {
+    error("Can't match vec.groups to md.define utility betas. Vector length != nrow(betas).")
+  }
+  cmr.beta.zc$Group <- factor(vec.groups)
+  
+  # set up a melted DF for plotting, and order the variables by overall mean
+  library(reshape2)
+  md.plot.df <- melt(cmr.beta.zc, id.vars=c("ID", "Group"))
+  # reorder the results by mean utility
+  cmr.order <- order(unlist(lapply(cmr.beta.zc[ , -ncol(cmr.beta.zc)], mean)))   # drop last column b/c it's ID
+  
+  md.plot.df$variable <- factor(md.plot.df$variable, 
+                                levels=unique(md.plot.df$variable)[cmr.order])
+  if (item.disguise) {
+    levels(md.plot.df$variable) <- paste0("i", 1:length(unique(md.plot.df$variable)[cmr.order]))[cmr.order]
+  }
+  
+  # aggregate by group
+  library(Rmisc)
+  
+  # unless groups are defined to include, include all of them
+  if (is.null(groups.to.plot)) {
+    groups.to.plot <- unique(vec.groups)
+  }
+  
+  # get the aggregated means and CI
+  # note: produces warnings for groups with N=1 member -- exclude them above
+  cmr.beta.agg <- group.CI(value ~ Group + variable, 
+                           md.plot.df[as.character(md.plot.df$Group) %in% groups.to.plot, ])
+  cmr.beta.agg <- na.omit(cmr.beta.agg)     # just in case, remove groups with N=1 (and NA values)
+  head(cmr.beta.agg)
+  
+  # the plot  
+  library(ggplot2)
+  dodge <- position_dodge(width=0.3)
+  p <- ggplot(cmr.beta.agg, 
+              aes(x=variable, y=value.mean, group=Group)) +
+    geom_point(aes(col=Group), position=dodge, size=2) +
+    geom_errorbar(aes(ymin=value.lower, ymax=value.upper, color=Group), 
+                  position=dodge, alpha=0.4) +
+    ylab("Preference estimate (mean preference + CI)") +
+    xlab("Feature") +
+    ggtitle("Preference for Item by Group") +
+    coord_flip()
+  p
+  
+}
+
+
+
+#############################################################
+#############################################################
+
+# this is only useful if you have "relevant" and "important" checkboxes per
+# the "chapman/bahna" adaptive Maxdiff method
+#
+
+plot.md.relevant <- function(md.define, item.disguise=FALSE) {
+  
+  if (is.null(md.define$tasks.rel) | is.null(md.define$tasks.unimp)) {
+    error("Relevant and Important tasks (tasks.rel, tasks.unimp) not defined in md.define.")
+  }
+  tasks.rel   <- md.define$tasks.rel     # checkboxes for relevant
+  tasks.unimp <- md.define$tasks.unimp   # checkboxes for "important to me"
+  
+  tasks.grid.rel   <- colMeans(na.omit(md.define$md.csvdata[ , tasks.rel])-1)
+  tasks.grid.irrel <- 1-tasks.grid.rel
+  tasks.grid.unimp <- colMeans(na.omit(md.define$md.csvdata[ , tasks.unimp])-1)
+  tasks.grid.imp   <- tasks.grid.rel - tasks.grid.unimp
+  
+  if (item.disguise) {
+    tasks.grid <- data.frame(Task=paste0("i", 1:length(md.define$md.item.names)), 
+                             Irrelevant=tasks.grid.irrel, Relevant.but.notImportant=tasks.grid.unimp, Important.to.Job=tasks.grid.imp )
+  } else {  
+    tasks.grid <- data.frame(Task=md.define$md.item.names, 
+                             Irrelevant=tasks.grid.irrel, Relevant.but.notImportant=tasks.grid.unimp, Important.to.Job=tasks.grid.imp )
+  }
+  
+  library(reshape2)
+  tasks.grid.m <- melt(tasks.grid)
+  
+  names(tasks.grid.m) <- c("Item", "Rating", "value")
+  library(ggplot2)
+  p <- ggplot(data=tasks.grid.m, 
+              aes(x=Item, y=value, fill=Rating)) +
+    geom_bar(stat = "identity") +
+    theme_bw() +
+    theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(), axis.line = element_line(colour = "grey60")) +
+    scale_y_continuous(expand = c(0, 0)) +
+    ylab("Proportion of Respondents") +
+    ggtitle("Item Relevance for Respondents") +
+    coord_flip()
+  
+  p
+}
+
+
+
+###############################################
+###############################################
+#
+#  END OF MAXDIFF FUNCTIONS
+#
 #  START OF CPM FUNCTIONS
 #
 ###############################################
 ###############################################
+
 
 
 
