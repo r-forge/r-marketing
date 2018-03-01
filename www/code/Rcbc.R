@@ -1906,7 +1906,7 @@ if (FALSE) {
 #   read.md.cho(md.define)           # read a Sawtooth Software CHO file
 
 # AUGMENTING FOR ADAPTIVE METHOD
-#   md.augment(md.define)            # add coded choice tasks if using the "chapman/bahna" adaptive method
+#   md.augment(md.define)            # add coded choice tasks if using the adaptive/augmented method
 
 # ESTIMATING MODELS
 #   md.quicklogit(md.define)         # multinomial aggregate logit model estimation (fast)
@@ -2782,7 +2782,7 @@ plot.md.group <- function(md.define, vec.groups,
 #############################################################
 
 # this is only useful if you have "relevant" and "important" checkboxes per
-# the "chapman/bahna" adaptive Maxdiff method
+# the Constructed/Augmented MaxDiff method
 #
 
 plot.md.relevant <- function(md.define, item.disguise=FALSE) {
