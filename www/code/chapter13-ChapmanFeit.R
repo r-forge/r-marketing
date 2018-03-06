@@ -99,7 +99,7 @@ for (i in seq_along(resp.id)) {
 }  
 
 # cleanup! -- not in book:
-rm(a, i, resp.id, carpool, mu, Sigma, coefs, coef.names, attrib,
+rm(a, i, resp.id, carpool, mu, Sigma, coefs, coef.names, 
    conjoint.i, profiles, profiles.i, profiles.coded, utility, 
    wide.util, probs, choice, nalt, nques)
 # Try it!: ls()
