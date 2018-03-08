@@ -10,6 +10,8 @@ css: ../chapman-feit-slides.css
 **Sawtooth Software Conference**  
 Orlando, FL
 
+These slides: https://goo.gl/ACdG6B  
+Slide code: https://goo.gl/PjBceN 
 
 Basics of R
 ========================================================
