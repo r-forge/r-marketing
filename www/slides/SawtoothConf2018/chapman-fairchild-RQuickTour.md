@@ -16,8 +16,8 @@ Basics of R
 Key Points
 
 - It's where new methods are developed first
-- Over 8000 add on packages and tools
-- It is open source and free to use (except occasional packages)
+- Over 13000 add on packages and tools
+- It is open source and free to use (except a very few packages)
 - Don't think of R as a ``statistics program.''
 - R is primarily a *programming language*
 
