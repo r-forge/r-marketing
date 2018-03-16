@@ -6,8 +6,8 @@
 #
 # Copyright 2015, Springer 
 #
-# Last update: January 7, 2015
-# Version: 1.0
+# Last update: March 13, 2018
+# Version: 2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@
 
 #################################################################
 # BRIEF HOW TO USE
-# This file contains scripts used in Chapter 10 of Chapman & Feit (2015),
-#   "R for Marketing Research and Analytics", Springer. 
+# This file contains scripts used in Chapter 10 of Chapman & Feit (2018),
+#   "R for Marketing Research and Analytics", 2nd edition, Springer. 
 #################################################################
 
 
@@ -140,7 +140,7 @@ pies.fit.NH3 <- cfa(piesModelNH3, data=piesSimData)
 # compare models
 # install.packages("semTools")
 library(semTools)
-compareFit(pies.fit.NH1, pies.fit.NH3, pies.fit)
+summary(compareFit(pies.fit.NH1, pies.fit.NH3, pies.fit))
 
 
 
@@ -373,7 +373,7 @@ rSquared(satPLS.fit)
 #     to too many failures. The code here matches the book, 
 #     but may need updates or future semPLS options to run
 #
-set.seed(04460)
+set.seed(04635)
 satPLS.boot <- bootsempls(satPLS.fit, nboot=500, start="ones")
 summary(satPLS.boot, type = "bca", level = 0.9)
 
@@ -399,7 +399,7 @@ satPLS.fitF <- sempls(model=satPLS.mod, data=satSimData)
 pathCoeff(satPLS.fitF)
 
 # bootstrap PLS
-set.seed(04460)
+set.seed(04635)
 satPLS.bootF <- bootsempls(satPLS.fitF, nboot=500, start="ones")
 # summary(satPLS.bootF, type = "bca", level = 0.9)
 
