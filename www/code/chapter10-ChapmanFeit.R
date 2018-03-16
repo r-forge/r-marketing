@@ -223,7 +223,8 @@ scatterplotMatrix(satSimData[, c(1, 2, 4, 5, 7, 8, 10, 11, 13, 14)],
                   col=brewer.pal(3, "Spectral"), ellipse=TRUE )
 
 # basic psychometrics
-alpha(satSimData)
+library(psych)
+psych::alpha(satSimData)
 ######  end of omitted section
 ######
 
@@ -263,7 +264,7 @@ semPaths(satAlt.fit, what="mod", fade=FALSE, residuals=FALSE,
 
 
 # compare the 2 models
-compareFit(sat.fit, satAlt.fit, nested=TRUE)
+summary(compareFit(sat.fit, satAlt.fit, nested=TRUE))
 
 
 ##############
