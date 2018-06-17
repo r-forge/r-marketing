@@ -2955,6 +2955,7 @@ cpm.plot <- function(data.in, brand.ids, measure.vars,
   require(grid)      # for arrow functionality
   require(ggplot2)   # for plots
   require(candisc)   # for discriminant extraction
+  require(ggrepel)   # to separate text on plot
   
   # extract needed data from larger DF and remove NAs
   data.use <- na.omit(data.in[ ,c(brand.ids, measure.vars) ])
@@ -3095,9 +3096,10 @@ cpm.plot <- function(data.in, brand.ids, measure.vars,
           aes(x=x.start, y=y.start, xend=xDim, yend=yDim),  # cut: alpha
           lwd=1, arrow=arrow(length=unit(0.3,"cm"), angle=30)) + 
       # label the dimensional arrows
-      geom_text(data = attribute.plot.points, 
+      geom_text_repel(data = attribute.plot.points, 
           aes(x=xDim, y=yDim, label=arrow.text),  # cut: alpha
-          hjust=0.5, vjust=1.5, size = I(6)) +
+          # hjust=0.5, vjust=1.5, 
+          size = I(6)) +
       # set the chart boundaries
       coord_cartesian(xlim = c(x.min, x.max), ylim = c(y.min, y.max)) + 
       # nice background
