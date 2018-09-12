@@ -1,21 +1,21 @@
 ###################################
-# Rcbc package 0.30
+# Rcbc.R 0.32
 # Copyright 2013-2018 Google Inc.
 #
 # Marketing research tools for Choice-Based Conjoint Analysis and MaxDiff
 #
 # Authors: Christopher N. Chapman    Eric Bahna         James L. Alford          Steven Ellis       
-#          cchapman@google.com       bahna@google.com   jalford0974@yahoo.com    elliss@google.com  
+#          cchapman@google.com       bahna@google.com   jalford0974@yahoo.com    
 #
-# Last update: March 1, 2018
-# Version: 0.30
+# Last update: August 31, 2018
+# Version: 0.32
 
 #################################################################
 # BRIEF HOW TO USE
-# 1. Source this whole file in R
-# 2. Search for "if(FALSE) {" in this file and inspect those code examples
+# 1. Source this whole file in R. It is not yet a formal package.
+# 2. Search for "if (FALSE)" in this file and inspect those examples.
 # 3. Be sure to read thoroughly, esp. the license and warnings, and test 
-#    thoroughly before using in any project. There is no warranty of any kind.
+#    thoroughly before using in any project. There is no warranty of any kind!
 # 4. Most functions are documented with comments preceding their declarations.
 #################################################################
 
@@ -30,11 +30,11 @@
 # The authors kindly request citation when used for published work, either:
 #   Chapman, C.N., Bahna, E., Alford, J.L., and Ellis, S. (2018). Rcbc: Marketing 
 #     research tools for choice-based conjoint analysis and maxdiff, 
-#     version 0.30. [R package]
+#     version 0.32. [R code]
 
 rcbc.citation.string <- paste("Citation:\nChapman, C.N., Bahna, E., Alford, J.L., and",
     "Ellis, S. (2018). Rcbc: Marketing research tools for choice-based",
-    "conjoint analysis and maxdiff, version 0.30. [R package]\n")
+    "conjoint analysis and maxdiff, version 0.32. [R code]\n")
 
 # TRANSITION FROM PREVIOUS LICENSE
 #   This version of Rcbc is a derivative of previous versions that were offered
@@ -57,6 +57,8 @@ rcbc.citation.string <- paste("Citation:\nChapman, C.N., Bahna, E., Alford, J.L.
 # 2. Composite product mapping based on:
 #    Sawtooth Software (2004). The CPM system for composite product mapping, 
 #    technical paper series. Sawtooth Software, Sequim, WA.
+# 3. Bahna, E, and Chapman, C. (2018). "Constructed, Augmented MaxDiff." In 
+#    Proceedings of the 2018 Sawtooth Software Conference, Orlando, FL.
 
 # CHANGES IN VERSION 0.2
 # 1. Added wrapper functionality to ChoiceModelR for easy hierarchical Bayes
@@ -161,8 +163,14 @@ rcbc.citation.string <- paste("Citation:\nChapman, C.N., Bahna, E., Alford, J.L.
 #       simple utility function to calculate SEs and make code more compact
 #     read.md.cho() :
 #       read MaxDiff data from Sawtooth CHO format
+#     read.md.qualtrics() :
+#       read MaxDiff data from Qualtrics legacy export + random design format
 #     md.augment() :
 #       augment MaxDiff data per Bahna & Chapman (2018), Sawtooth Software Conf.
+#     md.hb() : 
+#       estimate hierarchical Bayes model for MaxDiff data
+#     md.quicklogit() :
+#       fast estimation of aggregate logit model for MaxDiff, for quick test
 #     plot.md.* () : 
 #       various plotting routines for MaxDiff results
 #     
@@ -708,9 +716,7 @@ bootstrapMNLfromDesign <- function(df.in, cards.win, cards, trials,
 }
 
 
-
 ## ** reformat done to here **
-
 
 
 #############################################
@@ -1748,10 +1754,11 @@ extractHBbetas <- function(tmp.cmrlist, attr.list) {
 
 
 #############################################################
-# maxdiff-functions.R    (component subversion 0.52s for Mar 2018 patch)
+# maxdiff-functions.R    
+#   (MaxDiff code subversion 0.62 for August 2018 patch)
 #
 # Chris Chapman, cchapman@google.com
-# February 2018
+# August 2018
 #
 
 #############################################################
@@ -1759,18 +1766,17 @@ extractHBbetas <- function(tmp.cmrlist, attr.list) {
 # DOCUMENTATION
 # 
 # OVERVIEW:
-# These functions provide handling of MaxDiff data from Sawtooth Software 
-# and other survey platforms.
+# These functions provide complete handling of MaxDiff data from Sawtooth Software 
+# and Qualtrics survey platforms. See function intros for most documentation.
 # 
 # In particular, they take a CHO file exported from Sawtooth Software Lighthouse Studio,
-# reshape the data, estimate multinomial logit or Hierarchical Bayes models, 
-# and create various plots.
+# or a CSV file from Qualtrics for a MaxDiff exercise, reshape the data, 
+# estimate multinomial logit or Hierarchical Bayes models, and create various plots.
 #
 # Additionally the code implements an experimental "augmented maxdiff" model,
 # -- only for Sawtooth Software studies with a specific setup --
-# where respondents may respond to a subset of items. See: Bahna & Chapman,
-# "Constructed, Augmented MaxDiff", paper presented at the Sawtooth Software 
-# Conference, Orlando, Fl, March 2018.
+# where respondents may respond to a subset of items. Ask cchapman@ or 
+# bahna@ for details (and see section on "Augment" below).
 # 
 # REQUIRED LIBRARIES (depending on which functions you use)
 #   reshape2, ggplot2, mlogit, ChoiceModelR, Rmisc, matrixStats, superheat, corrplot
@@ -1785,6 +1791,7 @@ if (FALSE) {
 #   0. Field a MaxDiff survey and get its data
 #      This involves using Sawtooth Software and exporting the "CHO file" for the MaxDiff block.
 #      You will need that CHO file as a minimum to use the remainder of this script.
+#      Alternatively, use Qualtrics, but be very careful about export format (ask cchapman@: legacy exporter with random order exported)
 #
 #   1. Define an "md.define" object (or whatever name you want) below. In particular, define:
 #      .. where your data files are
@@ -1795,55 +1802,50 @@ if (FALSE) {
 #
 #   2. After that, use the functions defined below to read data, estimate a model, and plot.
 #      Here's a complete example, using a specified "md.define" study object as shown below:
-###
-### COMPLETE WALKTHROUGH
-###
-if (FALSE) {
-  # first,  make sure you have the libraries as noted above
-  # second, "source()" this entire file to make the functions available
-  # third,  set up "md.define" to define your study parameters, as noted below
-  #
-  test.read                <- read.md.cho(md.define)    # read the CHO data [from Sawtooth Software export]
-  md.define$md.block       <- test.read$md.block        # save the data back into our study object
-  
-  md.define$md.model.logit <- md.quicklogit(md.define)  # aggregate logit model (fast check)
-  summary(md.define$md.model.logit)
-  md.plot.logit(md.define)                              # plot the logit model estimates
-  # YES! Really, that's all -- top-level answers with 5 lines of code (after model setup)
-  
-  # Hierarchical Bayes, individual-level estimation 
-  test.hb <- md.hb(md.define, mcmc.iters = 2000)        # estimation (note: set mcmc.iters appropriately!)
-  md.define$md.model.hb    <- test.hb$md.model          # save the results into our study object
-  md.define$md.hb.betas    <- test.hb$md.hb.betas       # raw utilities by individual
-  md.define$md.hb.betas.zc <- test.hb$md.hb.betas.zc    # zero-centered diff scores by individual (rec'd)
-  rm(test.hb)
-  summary(md.define$md.hb.betas.zc)
-  
-  plot.md.range(md.define)                              # HB mean utilities (zero-centered) with credible intervals
-  
-  p <- plot.md.indiv(md.define)                         # create plot of HB model with individual mean betas
-  p + theme_minimal()                                   # can use other ggplot functions like ggtitle()
-}
-
-
-#############################################################
-#############################################################
 #
+       if (FALSE) {
+         test.read                <- read.md.cho(md.define)    # read the CHO data [Sawtooth]
+         # test.read              <- read.md.qualtrics(md.define) # read Qualtrics data
+         md.define$md.block       <- test.read$md.block        # save the data back into our study object
+  
+         md.define$md.model.logit <- md.quicklogit(md.define)  # aggregate logit model (fast check)
+         summary(md.define$md.model.logit)
+         md.plot.logit(md.define)                              # plot the logit model estimates
+         # YES! Really, that's all -- top-level answers with 5 lines of code (after model setup)
+         
+         # Hierarchical Bayes, individual-level estimation 
+         test.hb <- md.hb(md.define)                           # estimation (note: set mcmc.iters appropriately)
+         md.define$md.model.hb    <- test.hb$md.model          # save the results into our study object
+         md.define$md.hb.betas    <- test.hb$md.hb.betas       # raw utilities by individual
+         md.define$md.hb.betas.zc <- test.hb$md.hb.betas.zc    # zero-centered diff scores by individual (rec'd)
+         rm(test.hb)
+         summary(md.define$md.hb.betas.zc)
+         
+         p <- plot.md.indiv(md.define)                         # create plot of HB model with individual mean betas
+         p + theme_minimal()                                   # can use other ggplot functions like ggtitle()
+       }
+
+#
+#############################################################
+
+#############################################################
+#############################################################
+
 # EXAMPLE STUDY DEFINITIONS
 # You MUST set up an object with:
-#    1. the locations of your files
+#    1. the locations of your files (Sawtooth and/or Qualtrics)
 #    2. the overall design of your MaxDiff task
 #    3. options such as whether to do adaptive MaxDiff and short/friendly names you prefer
 # ==> Read each entry and update it as needed.
 
 #########################
 # SAWTOOTH SOFTWARE VERSION FOR STUDY SETUP
-#
+# See Step 3 about ("maxdiff-examples.R") for more details
 if (FALSE) {
-  md.define <- list(
+  md.define.saw <- list(
     # DATA SETUP - REQUIRED
     # Working directory and file locations
-    file.wd          = "~/Downloads/Job/",
+    file.wd          = "~/Documents/Chris Documents/Virtual Machines.localized/shared-from-vm/cloud-CUJ-May2017/Job/",
     file.cho         = "MaxDiffExport/MaxDiffExport.cho",  # CHO export from Sawtooth export jobs, required
     file.lab         = "MaxDiffExport/MaxDiffExport.val",  # VAL file from that same export location, optional
     file.all         = "Export/Export.csv",                # full CSV export, only needed if using adaptive
@@ -1867,14 +1869,58 @@ if (FALSE) {
     # these are magic numbers and must be selected to match your data
     # nonsequential vectors (e.g., c(23, 24, 28, 32, 33)) are believed to work, but are not tested
     #
-    # set this to FALSE (or delete this section) if your study is not an augmented study
-    # as noted in Bahna & Chapman (2018)
-    #
-    md.adapt         = TRUE,                               # use adaptive method to supplement choices?
     tasks.rel        = 252:284,                            # columns of file.all with checkboxes for relevant
     tasks.unimp      = 285:317,                            # columns of file.all with checkboxes for "important to me"
+    md.adapt         = TRUE,                               # use adaptive method to supplement choices?
     md.adapt.Imp     = 493:525,                            # columns of file.all that list items selected as "Important" 
     md.adapt.NotImp  = 592:624,                            # columns of file.all that list "not important" items
+    
+    # REFERENCE: CHOICE DATA USED IN ESTIMATION
+    md.block         = NULL,                               # where we'll put choice data as it's read / augmented
+    md.csvdata       = NULL,                               # where we'll hold other survey data, if needed
+    md.nrow.preadapt = NULL,
+    
+    # REFERENCE: STATISTICAL RESULTS
+    md.model.logit   = NULL,                               # hold aggregate mlogit estimates
+    md.model.hb      = NULL,                               # hold HB model results
+    md.hb.betas      = NULL,                               # individual-level raw betas from HB model
+    md.hb.betas.zc   = NULL                                # individual-level zero-centered diffs from HB model
+  )
+}
+
+
+#########################
+# QUALTRICS VERSION FOR STUDY SETUP
+#
+if (FALSE) {
+  md.define.qt <- list(
+    # DATA SETUP - REQUIRED: Working directory and file locations
+    file.wd          = NULL,   # not generally relevant for Qualtrics because only one data file (next line)
+    file.qsv         = "~/Downloads/Developer_Experience_Priorities (2).csv",   # Qualtrics export file
+    resp.rows        = NULL,                               # which rows of file to keep. NULL == all.
+                                                           # numbered as *line number in the CSV* (not resp number)
+    
+    # REQUIRED: MAXDIFF DESIGN 
+    md.item.k        = 22,                                 # total # of items on maxdiff list
+    md.item.tasks    = 5,                                  # num of choice trials per respondent (max)
+    md.item.pertask  = 5,                                  # num of concepts shown in each trial
+    
+    # OPTIONAL BUT RECOMMENDED: FRIENDLY ITEM NAMES
+    # Friendly names to use for the item labels in plots, etc. See Sawtooth object above for example.
+    # Set this to NULL if you want simpler "i1", "i2", etc, or want to read them from the VAL file
+    # Important: Order must exactly match the order in the data file, or things will be mis-labeled!
+    md.item.names    = NULL,
+    
+    # REQUIRED (PROBABLY): QUALTRICS FILE LAYOUT
+    # required if you're going to use the read.md.qualtrics() function to get Qualtrics data
+    #
+    q.startDesCol     = 117,                               # the first column with design matrix (e.g., "6|3|2|9" or whatever)
+    q.startMDcol      =   7,                               # the column where the MaxDiff responses begin. ASSUMES continuous in current version
+    q.endMDcol        = 116,                               # where the MaxDiff items end. See not #7 above!
+    q.itemSplit       = "...-",                            # separator between Qualtrics header & actual MaxDiff item label
+    q.removeInc       = TRUE,                              # remove respondents with any missing MaxDiff observations? 
+    q.codeMDpos       = 3,  # (usually 2, but varies)      # the code used for the "winning" MD item, from Qualtrics
+    q.codeMDneg       = 1,  # (usually 1, but check)       # the code used for the "losing" MD item
     
     # REFERENCE: CHOICE DATA USED IN ESTIMATION
     md.block         = NULL,                               # where we'll put choice data as it's read / augmented
@@ -1901,12 +1947,14 @@ if (FALSE) {
 # Note that each function is followed by a unit test section. You can 
 # use those tests as skeletons for your analyses.
 #
-
+# 
 # READING DATA
 #   read.md.cho(md.define)           # read a Sawtooth Software CHO file
+#   parse.md.qualtrics(filename)     # diagnoses a Qualtrics export file and creates md.define object
+#   read.md.qualtrics(md.define)     # read data from a Qualtrics export
 
 # AUGMENTING FOR ADAPTIVE METHOD
-#   md.augment(md.define)            # add coded choice tasks if using the adaptive/augmented method
+#   md.augment(md.define)            # add coded choice tasks if using the "chapman/bahna" adaptive method
 
 # ESTIMATING MODELS
 #   md.quicklogit(md.define)         # multinomial aggregate logit model estimation (fast)
@@ -1939,6 +1987,9 @@ if (FALSE) {
 #############################################################
 #
 #   read.md.cho(md.define, opt.last.item.label)
+#
+#   reads a CHO file as exported by Sawtooth Software Lighthouse Studio
+#   and recodes it into the "md.block" format used by estimation functions here
 # 
 #   md.define            : the study definition object, used to locate the data file
 #   opt.last.item.label  : optional name for the final item, if you're not using friendly names but
@@ -1946,12 +1997,12 @@ if (FALSE) {
 
 read.md.cho <- function(md.define, 
                         opt.last.item.label="LAST ITEM (label not in VAL file") {
-  
+
   ######
   # 1. get CHO data
   cat("Reading CHO file:", md.define$file.cho,"\n")
   md.all.raw  <- read.csv(paste0(md.define$file.wd, md.define$file.cho), header=FALSE, stringsAsFactors=FALSE)
-  
+
   ######
   # 2. set up item names
   #    to do: 
@@ -1979,7 +2030,7 @@ read.md.cho <- function(md.define,
   md.names    <- gsub("[[:space:]]+", ".", md.names)
   md.names    <- gsub("[[:punct:]]+", ".", md.names)     # remove multiple periods
   md.names    <- gsub("99.", "_", md.names)
-  
+
   ######
   # 3. reshape CHO data to wide format
   md.block <- NULL         # where we will hold the data
@@ -2160,10 +2211,8 @@ read.md.cho <- function(md.define,
   # library(car)
   # car::some(md.block, 40)
   
-  
   # TO DO: make sure md.block names are all legal R variable names
-  
-  
+ 
   # check (possible) Best / Worst levels in the data
   # --> should be *exact* match within level for -1 vs 1; and similar frequencies across levels
   #
@@ -2171,7 +2220,7 @@ read.md.cho <- function(md.define,
   #         automate this, check equivalence and warn if not
   
   # apply(md.block, 2, table)   # see if we're balanced within & across levels
-  
+
   # now cast the blocks into conditional format
   md.block$choice.coded                         <- md.block$win
   md.block$choice.coded[which(md.block$win==1)] <- 'yes'   # recode 1's into yes
@@ -2185,7 +2234,384 @@ read.md.cho <- function(md.define,
 #############################################################
 #############################################################
 
-md.augment <- function(md.define) {
+#############################################################
+#
+#   read.md.qualtrics(md.define, use.wd)
+# 
+#   reads a Qualtrics "Legacy Exporter | Legacy view off | Export Randomized Order" CSV file
+#   and recodes the data into "md.block" format suitable for later estimation.
+#
+#   NOTE: there are two extremely common problems with the Qualtrics data exports:
+#         1. not exporting the randomized order correctly (must be sparse data format from legacy exporter)
+#         2. including incomplete respondents. currently this script breaks for incompletes. Exclude them beforehand
+# 
+#   md.define            : the study definition object, used to locate the data file
+#   use.wd               : whether to prepend the defined working directory to the file name
+# 
+
+read.md.qualtrics <- function(md.define, use.wd=FALSE) {    
+
+  file.name   <- ifelse(use.wd, paste0(md.define$file.wd, md.define$file.qsv),
+                                md.define$file.qsv)
+  
+  # other constants used by Qualtrics but should be stable and not require change
+  rowNames    <- 1         # line in the CSV with Qualtrics's names
+  rowItems    <- 2         # line in the CSV with actual MaxDiff item text
+  rowIntern   <- 3         # line in the CSV with Qualtrics's internal reference names
+  n.resp      <- NULL      # number of respondents; leave NULL to set this automatically (or set lower if desired)
+
+  # first read the data itself
+  md.all.raw <- read.csv(file.name, skip=max(rowItems, rowIntern), header=FALSE, stringsAsFactors=FALSE)
+  # keep only the headers plus designated respondent rows
+  if (!is.null(md.define$resp.rows)) {
+    md.all.raw <- md.all.raw[md.define$resp.rows-max(rowItems, rowIntern), ]
+    cat("Retaining only specified resp.rows =", md.define$resp.rows, "\n")
+  }
+  if (!is.null(md.define$q.mdcols)) {
+    md.all.raw <- md.all.raw[ , c(md.define$q.mdcols, 
+                                  md.define$q.startDesCol:(md.define$q.startDesCol+md.define$md.item.tasks-1))]
+    cat("Retaining only specified MaxDiff columns =", md.define$q.mdcols, "\n")
+    md.define$q.startMDcol <- 1
+    md.define$q.endMDcol   <- length(md.define$q.mdcols)
+  }
+
+  # use friendly names if they're provided
+  if (!is.null(md.define$md.item.names)) {
+    md.item.text <- md.define$md.item.names
+  } else {
+    # if item names are undefined, get them from the file (splitting on "itemSplit")
+    # read the item labels from file
+    md.item.text.raw <- read.csv(file.name, skip=rowItems-1, nrows=1, header=FALSE, stringsAsFactors=FALSE)
+    if (!is.null(md.define$q.mdcols)) {
+      md.item.text.raw <- md.item.text.raw[, c(md.define$q.mdcols, 
+                                  md.define$q.startDesCol:(md.define$q.startDesCol+md.define$md.item.tasks-1))]
+    }
+
+    md.item.text     <- md.item.text.raw[md.define$q.startMDcol:(md.define$q.startMDcol+md.define$md.item.k-1)]
+    # split them and assign as item names
+    md.item.text <- unlist(lapply(md.item.text, function(x) strsplit(x, md.define$q.itemSplit, fixed=TRUE)[[1]][2]))
+  }
+  # names(md.item.text) <- paste0("v", 1:length(md.item.text))   # ??????
+  
+  # check for complete response sets and optionally drop incompletes
+  #
+  best.count  <- apply(md.all.raw[ , md.define$q.startMDcol:md.define$q.endMDcol], 1, 
+                       function(x) sum(na.omit(x)==md.define$q.codeMDpos))
+  worst.count <- apply(md.all.raw[ , md.define$q.startMDcol:md.define$q.endMDcol], 1, 
+                       function(x) sum(na.omit(x)==md.define$q.codeMDneg))
+  cat("Found average =", mean(best.count), "'best' answers, and average =", mean(worst.count), "'worst' answers.\n")
+  
+  count.OK    <- best.count==md.define$md.item.tasks & worst.count==md.define$md.item.tasks
+  if (any(!count.OK)) warning("You have some sets that don't match the expected number of answers!")
+  cat("Of N =", length(count.OK), "total:\nFound N =", sum(count.OK), "complete responses, and N =", sum(!count.OK), 
+      "with missing observations.\n")
+  
+  if (md.define$q.removeInc) {
+    cat("Recoding", sum(count.OK), "complete responses. (Dropping", sum(!count.OK), "incomplete.) ... ")
+    if (sum(count.OK) != length(count.OK)) warning ("Incomplete respondents dropped.")
+  } else {
+    cat("Recoding", sum(count.OK), "responses (including", sum(!count.OK), "incomplete.) ... ")
+    count.OK <- rep(TRUE, nrow(md.all.raw))
+  }
+
+  # if you want to do anything else to check the data, go ahead here by adjusting "count.OK" ...
+  # .. and then:
+  md.data <- md.all.raw[count.OK, ]    # keep the good responses (hopefully all of them!)
+  
+  if (is.null(n.resp)) {
+    n.resp <- nrow(md.data)            # set the N of responses
+  }
+
+  # STEP 3: RESHAPE THE DATA TO HAVE VERBOSE STACKED FORMAT
+  # see http://surveyanalysis.org/wiki/Analyzing_Max-Diff_Using_Standard_Logit_Models_Using_R for reference on format
+
+  # set up a matrix to hold the recoded data
+  # first, identfiers. If you change these, also change "k.startCol" below:
+  md.data.stack <- data.frame(win      = 0,
+                              resp.id  = rep(1:n.resp, each=md.define$md.item.tasks*md.define$md.item.pertask*2), 
+                              Block    = rep(1:md.define$md.item.tasks, n.resp, each=md.define$md.item.pertask*2),
+                              Set      = factor(rep(c("Best", "Worst"), each=md.define$md.item.pertask, times=n.resp*md.define$md.item.tasks)),
+                              sys.resp = "")
+  # second, placeholder for the design matrix
+  md.data.stack <- cbind(md.data.stack[ , 1:2], matrix(0, ncol=md.define$md.item.k, nrow=nrow(md.data.stack)), md.data.stack[ , 3:ncol(md.data.stack)])
+  k.startCol    <- 3    # where the MaxDiff matrix actually starts in md.data.stack; will be OK unless you change -3 lines above
+  
+  md.data.zero <- md.data                  # a copy where "nothing" is shown; starting point for actual design matrix
+  md.data.zero[is.na(md.data.zero)] <- 0
+  
+  ### create match for design matrix coding into actual columns within a task set
+  # 1. what are the question names that appear in the file?
+  md.item.qnames <- read.csv(file.name, skip=rowNames-1, nrows=1, header=FALSE, stringsAsFactors=FALSE)
+  if (!is.null(md.define$q.mdcols)) {
+    md.item.qnames <- md.item.qnames[, c(md.define$q.mdcols, 
+                                  md.define$q.startDesCol:(md.define$q.startDesCol+md.define$md.item.tasks-1))]
+  }
+  # print(md.item.qnames)
+  
+  # 2. which of those are MD items?
+  md.item.qnames <- md.item.qnames[md.define$q.startMDcol:(md.define$q.startMDcol+md.define$md.item.k-1)]
+  # print(md.item.qnames)
+  
+  # of those, what are the design column indicators?
+  md.item.qnames.des <- as.numeric(unlist(sapply(md.item.qnames, function(x) tail(unlist(strsplit(x, "_")), 1))))
+  # print(md.item.qnames.des)
+  if (anyDuplicated(md.item.qnames.des) > 0) {
+    cat("Found duplicated MaxDiff item suffixes (e.g., like Q11_2 and Q11_2 again).\nData probably incorrectly read here.\n")
+    cat("Duplicates start at putative MaxDiff item:", anyDuplicated(md.item.qnames.des), "\n")
+    warning("Duplicated MaxDiff item suffixes. Read diagnostics above.")
+  }
+  
+  if (!is.null(md.define$q.mdcols)) {
+    md.define$q.startDesCol <- length(md.define$q.mdcols) + 1
+  }
+
+  
+  for (i in 1:nrow(md.data.zero)) {                  # iterate over respondents
+    if (i %% 100 == 0) {
+      # show progress
+      cat (i, " ", sep="")
+    }
+    for (j in 1:md.define$md.item.tasks) {                           # iterate over the randomized design sets shown, within respondent
+      desSpec   <- md.define$q.startDesCol + j - 1
+      desCols   <- as.numeric(unlist(strsplit(md.all.raw[i, desSpec], "|", fixed=TRUE)))
+
+      offsetCol <- md.define$q.startMDcol + (j-1) * md.define$md.item.k - 1
+  
+      # cat(desCols, "::", offsetCol, "::", desCols + offsetCol, "\n",  sep=" ")
+      # cat(unlist(md.data[i , desCols + offsetCol]), "\n")
+      
+      for (k in seq_along(desCols)) {         # code "best" cases
+        rowOffset <- (i-1)*md.define$md.item.tasks*md.define$md.item.pertask*2 + (j-1)*md.define$md.item.pertask*2 + k
+        md.data.stack[rowOffset, 2+which(md.item.qnames.des==desCols[k])] <- 1
+        if (md.data.zero[i, which(md.item.qnames.des==desCols[k])+offsetCol] == md.define$q.codeMDpos) {
+          md.data.stack[rowOffset, "win"] <- 1
+        }
+      }
+      for (k in seq_along(desCols)) {         # code "worst" cases
+        rowOffset <- (i-1)*md.define$md.item.tasks*md.define$md.item.pertask*2 + (j-1)*md.define$md.item.pertask*2 + k + md.define$md.item.pertask
+        md.data.stack[rowOffset, 2+which(md.item.qnames.des==desCols[k])] <- -1
+        if (md.data.zero[i, which(md.item.qnames.des==desCols[k])+offsetCol] == md.define$q.codeMDneg) {
+          md.data.stack[rowOffset, "win"] <- 1
+        }
+      }
+    }
+  }
+  
+  # assign names
+  md.item.text <- gsub("[[:space:][[:punct:]]", ".", md.item.text)
+  md.item.text <- gsub("[[:punct:]]+", ".", md.item.text)     # remove multiple periods
+  
+  names(md.data.stack)[k.startCol:(k.startCol-1+md.define$md.item.k)] <- md.item.text
+  
+  # now cast the blocks into conditional format
+  md.data.stack$choice.coded                       <- md.data.stack$win
+  md.data.stack$choice.coded[md.data.stack$win==1] <- 'yes'   # recode 1's into yes
+  md.data.stack$choice.coded[md.data.stack$win==0] <- 'no'    # recode 0's into no 
+  md.data.stack$choice.coded                       <- as.factor(md.data.stack$choice.coded)
+  
+  cat("done.\n")
+  
+  # make sure md.data.stack names are all legal R variable names
+  # to do: shorten into a single sub() line :)  not enough time today 
+  check.names <- names(md.data.stack)
+  if (any(!grepl("^[a-zA-Z\\.]", check.names))) {
+    names.fix <- which(!grepl("^[a-zA-Z\\.]", check.names))
+    check.names[names.fix] <- paste0("Q", check.names[names.fix])
+  }
+  names(md.data.stack) <- check.names
+  
+  return(list(md.block=md.data.stack))
+}
+
+
+#############################################################
+#############################################################
+#
+#  md.augment(md.define, method)
+#
+#  augments the "md.block" object with inferred preferences for items that were
+#  rated before selection into the MaxDiff.
+#
+#  md.define : the study object
+#  method    : "threshold" (default) for augmenting via threshold method (see Chapman & Bahna, forthcoming)
+#               .. adds "important" > threshold, and "unimportant" < threshold, not full expansion
+#              "grid" to add all two-way full expansion for "important items" %*% "unimportant"
+
+md.augment <- function(md.define, method="threshold") {
+  
+  # default to new threshold method (as of v0.60), with option for older "grid" expansion
+  if (method=="grid") {
+    return(md.augment.grid(md.define))
+    
+  } else {
+    md.block <- md.define$md.block         # copy of the data so we can munge it and return
+    
+    md.block$threshold <- 0               # add or clear column to code threshold as "not shown"
+    
+    # set up blocks for basic CHO data before augmenting choice sets
+    md.block$chid          <- ceiling(1:nrow(md.block)/md.define$md.item.pertask)      
+    md.block$choice.coded  <- md.block$win
+    
+    if (!md.define$md.adapt) {
+      cat("Warning: Not augmenting. md.define is not set for augmentation.\n")
+      
+    } else {
+      # load full CSV data
+      cat("Reading full data set to get augmentation variables.\n\n")
+      full.data <- read.csv(paste0(md.define$file.wd, md.define$file.all))  
+      
+      cat("Importants:", md.define$md.adapt.Imp,"\n")
+      print(names(full.data)[md.define$md.adapt.Imp])
+      cat("Unimportants:", md.define$md.adapt.NotImp,"\n")
+      print(names(full.data)[md.define$md.adapt.NotImp])
+    }
+    
+    nrow.preadapt <- nrow(md.block)
+    if (md.define$md.adapt) {
+      
+      cat("\nAugmenting choices per 'threshold augementation' method. \nRows before augementation:", nrow.preadapt, "\n")
+      
+      ## TO DO: some data quality tests and error recovery for full.data
+      
+      # set states for preallocation and placeholder
+      block.new  <- TRUE
+      
+      # loop over all respondents and add data ...
+      #
+      chid <- max(md.block$chid)+1                          # counter for choice blocks as we add them
+      md.supp                    <- md.block[1:4, ]   # a block we'll reuse for all the Imp x NotImp choices below
+      
+      # for all respondents ...
+      for (i in unique(md.block$resp.id)) {
+        i.data   <- full.data[full.data$sys_RespNum==i, ]
+        itemsImp <- i.data[md.define$md.adapt.Imp]            # remove magic numbers
+        itemsImp <- na.omit(as.numeric(itemsImp))
+        itemsNotImp <- i.data[md.define$md.adapt.NotImp]       # remove magic numbers
+        itemsNotImp <- na.omit(as.numeric(itemsNotImp))
+        
+        # first augment the Important items vs. threshold, if any
+        if (length(itemsImp) > 0) {
+          
+          cat("\nAugmenting important items for respondent", i, ":", itemsImp)
+          for (imp in itemsImp) {
+            # set up an empty block of A vs. B choices to hold our augmented comparison
+            # structure is: Rows 1/2 == IMP vs. threshold, IMP       == Best
+            #               Rows 3/4 == IMP vs. threshold, threshold == Worst
+            md.supp[ , 3:(md.define$md.item.k+2)] <- 0    # clear design matrix
+            md.supp$win                <- 0    # " "
+            # fill in our metadata
+            md.supp$resp.id            <- i
+            # set the best choices (item wins vs. threshold)
+            md.supp[1, 2+imp]          <- 1
+            md.supp[2, "threshold"]    <- 1
+            md.supp[1, "win"]          <- 1
+            md.supp[1:2, "chid"]       <- chid
+            # set the worst choices (threshold wins as the "worst")
+            md.supp[3, 2+imp]          <- -1
+            md.supp[4, "threshold"]    <- -1
+            md.supp[4, "win"]          <- 1
+            md.supp[3:4, "chid"]       <- chid + 1
+            
+            # add the new choice set to the master choice data
+            # first, need to preallocate block ?
+            if (block.new) {                             # preallocate block
+              # max comparisons would be md.define$md.item.k as either important or unimportant
+              # so allocate that many for each respondent * 4 comparison rows
+              nrow.prealloc      <- (md.define$md.item.k) * length(unique(md.block$resp.id)) * 4
+              md.block.new       <- md.block[rep(1, nrow.prealloc), ]
+              md.block.new[ , ]  <- 0                    # zero out the preallocated matrix
+              block.line         <- 1                    # counter for which line we're on as we fill it
+              block.new          <- FALSE                # don't preallocate again
+            }
+            
+            # put the new data into the preallocated block
+            md.block.new[block.line:(block.line+nrow(md.supp)-1), ] <- md.supp
+            block.line                                              <- block.line + nrow(md.supp)
+            
+            # advance counter of choice blocks
+            chid                       <- chid + 2
+          }
+        }
+        
+        
+        ## Second, augment the unimportant items, if any
+        if (length(itemsNotImp) > 0) {
+          
+          cat("\nAugmenting unimportant items for respondent", i, ":", itemsNotImp)
+          for (notImp in itemsNotImp) {
+            # set up an empty block of A vs. B choices to hold our augmented comparison
+            # structure is: Rows 1/2 == notIMP vs. threshold, threshold  == Best
+            #               Rows 3/4 == notIMP vs. threshold, item       == Worst
+            md.supp[ , 3:(md.define$md.item.k+2)] <- 0    # clear design matrix
+            md.supp$win                <- 0    # " "
+            # fill in our metadata
+            md.supp$resp.id            <- i
+            # set the best choices (threshold wins vs item as the "best")
+            md.supp[1, 2+notImp]          <- 1
+            md.supp[2, "threshold"]    <- 1
+            md.supp[2, "win"]          <- 1
+            md.supp[1:2, "chid"]       <- chid
+            # set the worst choices (item wins as the "worst")
+            md.supp[3, 2+notImp]       <- -1
+            md.supp[4, "threshold"]    <- -1
+            md.supp[3, "win"]          <- 1
+            md.supp[3:4, "chid"]       <- chid + 1
+            
+            # add the new choice set to the master choice data
+            # first, need to preallocate block ?
+            if (block.new) {                             # preallocate block
+              # max comparisons would be md.define$md.item.k as either important or unimportant
+              # so allocate that many for each respondent * 4 comparison rows
+              nrow.prealloc      <- (md.define$md.item.k) * length(unique(md.block$resp.id)) * 4
+              md.block.new       <- md.block[rep(1, nrow.prealloc), ]
+              md.block.new[ , ]  <- 0                    # zero out the preallocated matrix
+              block.line         <- 1                    # counter for which line we're on as we fill it
+              block.new          <- FALSE                # don't preallocate again
+            }
+            
+            # put the new data into the preallocated block
+            md.block.new[block.line:(block.line+nrow(md.supp)-1), ] <- md.supp
+            block.line                                              <- block.line + nrow(md.supp)
+            
+            # advance counter of choice blocks
+            chid                       <- chid + 2
+          }
+        }
+      }  # end FOR respondents
+    } 
+    
+    # did we add anything?
+    if (block.line > 1) {
+      # keep only the preallocated rows we actually used
+      md.block.new <- md.block.new[1:(block.line-1), ]
+      # md.block.new <- md.block.new[md.block.new$resp.id > 0, ]
+      md.block <- rbind(md.block, md.block.new)
+    }
+    
+    cat ("\n ... done!\n\n")
+    cat("Rows after threshold augmentation: ", nrow(md.block), "\n")
+  }
+  
+  # now cast the new blocks into conditional format
+  md.block$choice.coded                         <- md.block$win
+  md.block$choice.coded[which(md.block$win==1)] <- 'yes'   # recode 1's into yes
+  md.block$choice.coded[which(md.block$win==0)] <- 'no'    # recode 0's into no 
+  md.block$choice.coded                         <- as.factor(md.block$choice.coded)
+  # table(md.block$win, md.block$choice.coded)
+  
+  return(list(md.block=md.block, md.nrow.preadapt=nrow.preadapt, md.csvdata=full.data))
+}
+
+
+#############################################################
+#############################################################
+#
+#  md.augment.grid(md.define)
+#
+#  called from md.augment() to implement the full-grid augmentation option
+#
+
+md.augment.grid <- function(md.define) {
   
   md.block <- md.define$md.block         # copy of the data so we can munge it and return
   
@@ -2210,7 +2636,7 @@ md.augment <- function(md.define) {
   nrow.preadapt <- nrow(md.block)
   if (md.define$md.adapt) {
     
-    cat("\nAugmenting choices per 'adaptive' method. \nRows before adding:", nrow.preadapt, "\n")
+    cat("\nAugmenting choices per 'adaptive grid', full expansion method. \nRows before adding:", nrow.preadapt, "\n")
     
     ## TO DO: some data quality tests and error recovery for full.data
     
@@ -2221,7 +2647,7 @@ md.augment <- function(md.define) {
     #
     chid <- max(md.block$chid)+1                          # counter for choice blocks as we add them
     cat ("\nAugmenting adaptive data for respondent:\n")
-    
+
     md.supp                    <- md.block[1:4, ]   # a block we'll reuse for all the Imp x NotImp choices below
     
     for (i in unique(md.block$resp.id)) {
@@ -2230,7 +2656,7 @@ md.augment <- function(md.define) {
       itemsImp <- na.omit(as.numeric(itemsImp))
       itemsNotImp <- i.data[md.define$md.adapt.NotImp]       # remove magic numbers
       itemsNotImp <- na.omit(as.numeric(itemsNotImp))
-      
+
       if (length(itemsImp) > 0 & length(itemsNotImp) > 0) {
         cat (i, " ")
         cat("augmenting:", itemsImp, "%*% ")
@@ -2285,14 +2711,14 @@ md.augment <- function(md.define) {
     cat ("done!\n\n")
     cat("Rows after augmenting data:", nrow(md.block), "\n")
   }
-  
+
   # now cast the new blocks into conditional format
   md.block$choice.coded                         <- md.block$win
   md.block$choice.coded[which(md.block$win==1)] <- 'yes'   # recode 1's into yes
   md.block$choice.coded[which(md.block$win==0)] <- 'no'    # recode 0's into no 
   md.block$choice.coded                         <- as.factor(md.block$choice.coded)
   # table(md.block$win, md.block$choice.coded)
-  
+
   return(list(md.block=md.block, md.nrow.preadapt=nrow.preadapt, md.csvdata=full.data))
   
 }
@@ -2300,8 +2726,18 @@ md.augment <- function(md.define) {
 
 #############################################################
 #############################################################
-
-#  note: usually only want the "preadapt" choice blocks; as is, data definition doesn't handle diff task sizes
+#
+#  md.quicklogit(md.define, preadapt.only)
+# 
+#  Estimates a maxdiff model using classical multinomial logit (aggregate
+#  level only). Results are relative to omitted reference level (final attribute).
+#  Recommend using this as a quick check of data sanity and correct
+#  directional coding. For reportable results, recommend md.hb() instead.
+#
+#  md.define     : study object with md.block to estimate
+#  preadapt.only : default TRUE. whether to exclude any blocks of augmented data
+#                  (recommended, as it may fail otherwise)
+#
 
 md.quicklogit <- function(md.define, preadapt.only=TRUE) {
   md.block <- md.define$md.block
@@ -2312,10 +2748,10 @@ md.quicklogit <- function(md.define, preadapt.only=TRUE) {
   
   library(mlogit)
   nrow.use <- ifelse(preadapt.only, 
-                     ifelse(is.null(md.define$md.nrow.preadapt), 
-                            nrow(md.block), 
-                            md.define$md.nrow.preadapt),
-                     nrow(md.block))
+                       ifelse(is.null(md.define$md.nrow.preadapt), 
+                                nrow(md.block), 
+                                md.define$md.nrow.preadapt),
+                       nrow(md.block))
   
   mlogit.ready <- mlogit.data(md.block[1:nrow.use, ],    
                               shape = "long", 
@@ -2341,8 +2777,15 @@ md.quicklogit <- function(md.define, preadapt.only=TRUE) {
 
 #############################################################
 #############################################################
-
-# item.disguise == should the labels be replace with generic names?
+#
+#  md.plot.logit(md.define, item.disguise)
+#  
+#  a plot of aggregate logit results as found by md.quicklogit()
+#
+#  md.define     : study object with results from md.quicklogit() present in
+#                  an ...$md.model.logit object
+#  item.disguise : default FALSE. Should the labels be replace with generic
+#                  names? Useful for redacted presentations.
 
 md.plot.logit <- function(md.define, item.disguise=FALSE) {
   
@@ -2377,9 +2820,36 @@ md.plot.logit <- function(md.define, item.disguise=FALSE) {
 
 #############################################################
 #############################################################
+#
+#  md.hb(md.define, mcmc.iters=1000, pitersUsed=0.1,
+#        mcmc.seed=..., restart=FALSE)
+#
+#  estimate MaxDiff utilities using hierarchical Bayes model
+#  this is the recommended way to estimate the model, although it can be slow
+#
+#  md.define   : your study object with md.block for observations
+#  mcmc.iters  : how many MCMC iterations to run. Suggest default 1000 for 
+#                quick check of model, and 20000 or more for actual results.
+#  pitersUsed  : the fraction of posterior draws to use when taking draws
+#                for example 0.1 [default] will use the last 10% of draws.
+#                Within that set, every 10th draw will be saved (that is fixed
+#                and has nothing to do with this parameter as such.)
+#  mcmc.seed   : set this if you want to specify a reusable random seed
+#                otherwise, function will pick one and report it
+#  restart     : default FALSE. Whether to use estimates from a prior run, if
+#                available.
+#
+#  Note on Performance: if you run more than 5000 MCMC iterations, it can be
+#  much faster to call this function repeatedly with restart=TRUE. For example,
+#  to get 50000 iterations, call it once, and then put it in a loop with 9 
+#  additional iterations of 5000 draws, "restart=TRUE". Finally, call it
+#  once more after than with pitersUsed=0.5 to get a final posterior draw of 
+#  whatever size you prefer.
+#                
 
-
-md.hb <- function(md.define, mcmc.iters=1000, mcmc.seed=runif(1, min=0, max=1e8), restart=FALSE) {
+md.hb <- function(md.define, 
+                  mcmc.iters=1000, pitersUsed = 0.1, 
+                  mcmc.seed=runif(1, min=0, max=1e8), restart=FALSE) {
   
   cat("Setting up HB estimation with random seed", mcmc.seed, "\n")
   md.block <- md.define$md.block
@@ -2387,7 +2857,7 @@ md.hb <- function(md.define, mcmc.iters=1000, mcmc.seed=runif(1, min=0, max=1e8)
   if (mcmc.iters < 10000) {
     warning("You appear to have 'mcmc.iters' set too low for a production run.\nThis is OK for testing, but increase for actual estimation!")
   }
-  
+
   ## .1: vector for the sequential order of tasks within best/worst blocks 
   ## ... (called "Alt" by ChoiceModelR)
   
@@ -2418,7 +2888,7 @@ md.hb <- function(md.define, mcmc.iters=1000, mcmc.seed=runif(1, min=0, max=1e8)
   for (i in unique(md.block$resp.id)) {
     task.count[md.block$resp.id==i] <- task.order(i)
   }
-  
+
   ## .3: vector for wining concept's line within block, specified on line 1 ("y")
   ## 
   if (sum(md.block$win==1) != sum(task.seq==1)) {
@@ -2427,7 +2897,7 @@ md.hb <- function(md.define, mcmc.iters=1000, mcmc.seed=runif(1, min=0, max=1e8)
   task.win              <- rep(0, length(task.seq))
   task.win[task.seq==1] <- task.seq[md.block$win==1]            # "y"
   task.win
-  tail(task.win, 50)
+  # tail(task.win, 50)
   
   ## .4: put together the data for ChoiceModelR
   cmr.block <- data.frame(UnitID = md.block$resp.id,
@@ -2437,20 +2907,19 @@ md.hb <- function(md.define, mcmc.iters=1000, mcmc.seed=runif(1, min=0, max=1e8)
                           y      = task.win)
   
   cmr.block <- cmr.block[order(cmr.block$UnitID), ]   # must be ordered by ID !
-  
+
   ## .5: set up estimation parameters
   ##
   # set up ChoiceModelR parameters
-  tmp.coding <- rep(0, md.define$md.item.k) #-1                   # 0 = categorical coding for the attribute
-  pitersUsed <- 0.1                                    # last proportion of draws to sample from
-  tmp.mcmc   <- list(R = mcmc.iters, use = mcmc.iters*pitersUsed)
+  tmp.coding  <- rep(0, md.define$md.item.k) #-1                   # 0 = categorical coding for the attribute
+  tmp.mcmc    <- list(R = mcmc.iters, use = mcmc.iters*pitersUsed)
   opt.restart <- restart & file.exists("restart.txt")            # automatically restarts if available
-  tmp.opt    <- list (none=FALSE, save=TRUE, keep=10, restart=opt.restart)               # no "none" values, save draws, keep every 10
+  tmp.opt     <- list (none=FALSE, save=TRUE, keep=10, restart=opt.restart)               # no "none" values, save draws, keep every 10
   
   # .6: be sure to display graphics window to see convergence plot
   # ... and run it!
   library(ChoiceModelR)
-  
+
   
   ## .6a: Actual estimation
   ## WARNING: SLOW! Est'd 1hr per 40K iterations
@@ -2458,7 +2927,7 @@ md.hb <- function(md.define, mcmc.iters=1000, mcmc.seed=runif(1, min=0, max=1e8)
   set.seed(mcmc.seed)
   cmr.out <- choicemodelr(data=cmr.block, 
                           xcoding=tmp.coding, mcmc=tmp.mcmc, options=tmp.opt)
-  
+
   
   ## .7: get the betas per respondent
   
@@ -2490,7 +2959,7 @@ md.hb <- function(md.define, mcmc.iters=1000, mcmc.seed=runif(1, min=0, max=1e8)
     }
     return(tmp.betas)
   }
-  
+
   # .71: get the individual-level average betas from ChoiceModelR model object
   md.attrs <- rep(2, md.define$md.item.k)
   cmr.beta <- extractHBbetas(cmr.out, md.attrs)[ , seq(from=1, to=md.define$md.item.k*2, by=2)]
@@ -2502,10 +2971,9 @@ md.hb <- function(md.define, mcmc.iters=1000, mcmc.seed=runif(1, min=0, max=1e8)
     colnames(cmr.beta) <- names(md.define$md.block[3:(md.define$md.item.k+2)])
   }
   cmr.beta <- data.frame(cmr.beta)
-  
+
   # .73: add respondent ID
   cmr.beta$ID <- unique(cmr.block$UnitID)    # works b/c cmr.beta is really beta.mu (mean), so 1 ID per row
-  
   
   # .8: rescale within respondent for comparability
   # Rescale to Zero-centered diffs, following steps noted at
@@ -2520,7 +2988,7 @@ md.hb <- function(md.define, mcmc.iters=1000, mcmc.seed=runif(1, min=0, max=1e8)
   library(matrixStats)
   # total spread btw Min & Max across all attributes (step #2 from URL)
   cmr.beta.zc.sumdiffs <- sum(colMaxs(as.matrix(cmr.beta.zc))-colMins(as.matrix(cmr.beta.zc)))  
-  cmr.beta.zc.mult     <- md.define$md.item.k * 100 / cmr.beta.zc.sumdiffs   # multiplier to rescale (step #3)
+  cmr.beta.zc.mult     <- 100 / cmr.beta.zc.sumdiffs   # multiplier to rescale (step #3)
   
   # now recale the zero-centered utilities to that 100 pt scale
   cmr.beta.zc <- cmr.beta.zc * cmr.beta.zc.mult     # (step #4 from URL)
@@ -2541,6 +3009,16 @@ md.hb <- function(md.define, mcmc.iters=1000, mcmc.seed=runif(1, min=0, max=1e8)
 
 #############################################################
 #############################################################
+#
+#  plot.md.range(md.define, use.raw=FALSE, item.disguise=FALSE)
+#
+#  plot upper-level estimates from md.hb() with 95% credible intervals
+#
+#  md.define     : study object, with ...$md.hb.betas[.zc] present from md.hb()
+#  use.raw       : use $md.hb.betas instead of zero-centered diffs, $md.hb.betas.zc
+#  item.disguise : default FALSE. Should the labels be replace with generic
+#                  names? Useful for redacted presentations.
+#
 
 plot.md.range <- function(md.define, use.raw=FALSE, item.disguise=FALSE) {
   if (use.raw & is.null(md.define$md.hb.betas)) {
@@ -2549,7 +3027,7 @@ plot.md.range <- function(md.define, use.raw=FALSE, item.disguise=FALSE) {
   if (!use.raw & is.null(md.define$md.hb.betas.zc)) {
     stop("No zero-centered diff scores present in md.define object.")
   }
-  
+
   # first get the data reshaped for plotting
   library(reshape2)
   library(ggplot2)
@@ -2564,7 +3042,7 @@ plot.md.range <- function(md.define, use.raw=FALSE, item.disguise=FALSE) {
   
   # reorder the results by median utility
   cmr.order <- order(unlist(lapply(cmr.beta.zc[ , -ncol(cmr.beta.zc)], mean)))   # drop last column b/c it's ID
-  
+
   md.plot.df$variable <- factor(md.plot.df$variable, 
                                 levels=unique(md.plot.df$variable)[cmr.order])
   if (item.disguise) {
@@ -2576,8 +3054,9 @@ plot.md.range <- function(md.define, use.raw=FALSE, item.disguise=FALSE) {
   cmr.beta.agg <- group.CI(value ~ variable, md.plot.df)
   head(cmr.beta.agg)
   
-  y.center <- mean(cmr.beta.agg[, 3])
-  y.limits <- c(-max(abs(cmr.beta.agg[, 2:4])), max(abs(cmr.beta.agg[, 2:4]))+y.center)
+  # TO DO: consider better scaling and centering?
+  # y.center <- mean(cmr.beta.agg[, 3])
+  # y.limits <- c(-max(abs(cmr.beta.agg[, 2:4])), max(abs(cmr.beta.agg[, 2:4]))+y.center)
   
   cmr.order <- order(cmr.beta.agg[ , 3])
   cmr.beta.agg$variable <- factor(cmr.beta.agg$variable, 
@@ -2603,8 +3082,17 @@ plot.md.range <- function(md.define, use.raw=FALSE, item.disguise=FALSE) {
 
 #############################################################
 #############################################################
-
-# quasi-strip plot of individuals and the overall mean
+#
+#  plot.md.indiv(md.define, use.raw=FALSE, item.disguise=FALSE)
+#
+#  quasi-strip plot of individuals' mean betas along with the overall mean
+#  useful to visualize the dispersion of estimated individual-level utilities
+#
+#  md.define     : study object, with ...$md.hb.betas[.zc] present from md.hb()
+#  use.raw       : use $md.hb.betas instead of zero-centered diffs, $md.hb.betas.zc
+#  item.disguise : default FALSE. Should the labels be replace with generic
+#                  names? Useful for redacted presentations.
+#
 
 plot.md.indiv <- function(md.define, use.raw=FALSE, item.disguise=FALSE) {
   if (use.raw & is.null(md.define$md.hb.betas)) {
@@ -2613,7 +3101,7 @@ plot.md.indiv <- function(md.define, use.raw=FALSE, item.disguise=FALSE) {
   if (!use.raw & is.null(md.define$md.hb.betas.zc)) {
     stop("No zero-centered diff scores present in md.define object.")
   }
-  
+
   # first get the data reshaped for plotting
   library(reshape2)
   library(ggplot2)
@@ -2623,9 +3111,9 @@ plot.md.indiv <- function(md.define, use.raw=FALSE, item.disguise=FALSE) {
   } else {
     cmr.beta.zc <- md.define$md.hb.betas.zc
   }
-  
+
   md.plot.df <- melt(cmr.beta.zc, id.vars="ID")
-  
+
   # reorder the results by median utility
   cmr.order <- order(unlist(lapply(cmr.beta.zc[ , -ncol(cmr.beta.zc)], mean)))   # drop last column b/c it's ID
   
@@ -2650,8 +3138,21 @@ plot.md.indiv <- function(md.define, use.raw=FALSE, item.disguise=FALSE) {
 
 ############################################################
 #############################################################
-
-# Heat map for utility clusters
+#
+#  plot.md.heatmap()
+#
+#  Creates a heat map with row and column clusters for item/respondent
+#  biclustering. Utility function.
+#
+#  md.define     : study object with ...$md.hb.betas[.zc] from md.hb() estimation
+#  use.raw       : use raw betas instead of zero-centered
+#  rnd.seed      : random seed to make the process repeatable. default 98103.
+#  clus          : vector specifying number of clusters for (rows, cols)
+#  clus.method   : "kmeans" or "hclust"
+#  smooth.it     : whether to smooth all cells in a cluster into one color
+#  item.disguise : replace labels with generic item numbers
+#  col.scheme    : a color scheme: "viridis" (red, purple, blue, grey, green)
+#
 
 plot.md.heatmap <- function(md.define, 
                             use.raw=FALSE, rnd.seed=98103,             # seed to make clustering repeatable
@@ -2690,7 +3191,7 @@ plot.md.heatmap <- function(md.define,
             n.clusters.rows = clus[1],                # # " "
             
             smooth.heat = smooth.it,                   # include this to see median color by block;
-            
+
             left.label = "variable",
             left.label.text.size = 3,
             
@@ -2707,16 +3208,31 @@ plot.md.heatmap <- function(md.define,
 #############################################################
 #############################################################
 
-# plot.md.group(md.model, md.define, var.grouping)
+# plot.md.group(md.define, vec.groups, 
+#               [ groups.to.plot, item.disguise, use.raw, item.order ])
+#
 # Compare utilities for groups
 #
-# ==> NB: alpha version, only lighted tested
+#   md.define      : maxdiff object with individual-level estimates from md.hb()
+#   vec.groups     : membership vector for each respondent. Must be coercible
+#                      to factor variable (such as a vector of character strings)
+#   groups.to.plot : optional. Among vec.groups, which ones should we plot?
+#   item.disguise  : optional. Replace actual item names with numbers?
+#   use.raw        : optional. Use raw utilities instead of zero-center diffs?
+#   item.order     : optional. Vector of positions to sort the items. Defaults to
+#                      the order of the overall mean beta across groups. See 
+#                      "?order" for details on how ordering vectors operate.
+#                    Note: position "1" is at the bottom in ggplot2 plots. If
+#                      you want 1 at the top, use rev(...)
+#                    Alternative: name the group you want to order by, i.e., as 
+#                      a simple character string like item.order="Segment1"
 
 plot.md.group <- function(md.define, vec.groups, 
-                          groups.to.plot=NULL,
-                          item.disguise=FALSE,
-                          use.raw=FALSE) {
-  
+                          groups.to.plot = NULL,
+                          item.disguise  = FALSE,
+                          use.raw        = FALSE,
+                          item.order     = NULL   ) {
+
   if (use.raw & is.null(md.define$md.hb.betas)) {
     stop("No raw betas present in md.define object.")
   }
@@ -2732,13 +3248,28 @@ plot.md.group <- function(md.define, vec.groups,
     error("Can't match vec.groups to md.define utility betas. Vector length != nrow(betas).")
   }
   cmr.beta.zc$Group <- factor(vec.groups)
-  
+
   # set up a melted DF for plotting, and order the variables by overall mean
   library(reshape2)
   md.plot.df <- melt(cmr.beta.zc, id.vars=c("ID", "Group"))
   # reorder the results by mean utility
-  cmr.order <- order(unlist(lapply(cmr.beta.zc[ , -ncol(cmr.beta.zc)], mean)))   # drop last column b/c it's ID
-  
+  if (is.null(item.order)) {
+    cmr.order <- order(unlist(lapply(cmr.beta.zc[ , 1:(ncol(cmr.beta.zc)-2)], mean)))       # drop last columns b/c ID + Group
+  } else if (length(item.order) == 1) {
+    cmr.order.tmp <- order(unlist(lapply(cmr.beta.zc[cmr.beta.zc$Group==item.order, 
+                                                     1:(ncol(cmr.beta.zc)-2)], mean)))   # drop last columns b/c ID + Group
+    if (length(cmr.order.tmp) != md.define$md.item.k) {
+      warning("item.order matching to group appears to be incorrect. Suggest to check exact group name.")
+    }
+    cmr.order <- cmr.order.tmp
+  } else {
+    cmr.order.tmp <- order(unlist(lapply(cmr.beta.zc[ , 1:(ncol(cmr.beta.zc)-2)], mean)))   # drop last columns b/c ID + Group
+    if (length(item.order) != length(cmr.order.tmp)) {
+      warning("item.order appears to be the wrong length.")
+    }
+    cmr.order <- item.order
+  }
+
   md.plot.df$variable <- factor(md.plot.df$variable, 
                                 levels=unique(md.plot.df$variable)[cmr.order])
   if (item.disguise) {
@@ -2747,12 +3278,12 @@ plot.md.group <- function(md.define, vec.groups,
   
   # aggregate by group
   library(Rmisc)
-  
+
   # unless groups are defined to include, include all of them
   if (is.null(groups.to.plot)) {
     groups.to.plot <- unique(vec.groups)
   }
-  
+
   # get the aggregated means and CI
   # note: produces warnings for groups with N=1 member -- exclude them above
   cmr.beta.agg <- group.CI(value ~ Group + variable, 
@@ -2773,31 +3304,39 @@ plot.md.group <- function(md.define, vec.groups,
     ggtitle("Preference for Item by Group") +
     coord_flip()
   p
-  
+
 }
 
 
 
 #############################################################
 #############################################################
-
-# this is only useful if you have "relevant" and "important" checkboxes per
-# the Constructed/Augmented MaxDiff method
+#
+# plot.md.relevant()
+#
+# plot the proportion of items that are relevant/irrelevant/important
+#
+# this may be useful if you have "relevant" and "important" checkboxes per
+# the "chapman/bahna" adaptive Maxdiff method
+#
+# WARNING: highly experimental and not debugged
 #
 
-plot.md.relevant <- function(md.define, item.disguise=FALSE) {
-  
+plot.md.relevant <- function(md.define, item.disguise=FALSE,
+                             code.rel=2, code.unimp=1)        # change these if your data are coded in reverse order, etc.
+{
+
   if (is.null(md.define$tasks.rel) | is.null(md.define$tasks.unimp)) {
     error("Relevant and Important tasks (tasks.rel, tasks.unimp) not defined in md.define.")
   }
   tasks.rel   <- md.define$tasks.rel     # checkboxes for relevant
   tasks.unimp <- md.define$tasks.unimp   # checkboxes for "important to me"
   
-  tasks.grid.rel   <- colMeans(na.omit(md.define$md.csvdata[ , tasks.rel])-1)
+  tasks.grid.rel   <- colMeans(na.omit(md.define$md.csvdata[ , tasks.rel]==code.rel))
   tasks.grid.irrel <- 1-tasks.grid.rel
-  tasks.grid.unimp <- colMeans(na.omit(md.define$md.csvdata[ , tasks.unimp])-1)
+  tasks.grid.unimp <- colMeans(na.omit(md.define$md.csvdata[ , tasks.unimp]==code.unimp))
   tasks.grid.imp   <- tasks.grid.rel - tasks.grid.unimp
-  
+
   if (item.disguise) {
     tasks.grid <- data.frame(Task=paste0("i", 1:length(md.define$md.item.names)), 
                              Irrelevant=tasks.grid.irrel, Relevant.but.notImportant=tasks.grid.unimp, Important.to.Job=tasks.grid.imp )
@@ -2826,6 +3365,391 @@ plot.md.relevant <- function(md.define, item.disguise=FALSE) {
 }
 
 
+#############################################################
+#
+# parse.md.qualtrics(file.qsv, itemSplit = "...-")
+#
+# Status: incomplete, especially for handling incomplete or missing data.
+#         believed to work OK for legacy-exported complete cases.
+#
+# Attempts to identify MaxDiff structure from a Qualtrics export file, and
+# optionally returns an "md.define" object that you can use as a template
+# for a study definition.
+#
+# Note: read the output carefully! If it doesn't match your expectation, you
+#       will need to debug your data. See notes above about the common errors
+#       in parsing Qualtrics files.
+#
+# PARAMETERS
+#   file.qsv      : Qualtrics export file to process. Required.
+#   itemSplit     : token used to identify MaxDiff items in Qualtrics file
+#                     required, but default "...-" should be OK
+#   designHead    : a token Qualtrics uses in MaxDiff design matrices (and elsewhere)
+#                     used with other indicators to infer MaxDiff columns
+#   itemConfirm   : disambiguator in case "itemSplit" & designHead don't work; 
+#                     a string in your MD items, but not other items with "itemSplit"
+#                     optional, change as needed
+#   friendly.names: if you use this function to construct an md.define object,
+#                     the short items names will be set to this vector;
+#                     caution, must exactly match the # of MaxDiff items
+#   returnList    : whether to create a list you can assign to md.define
+#                     optional, will output a code snippet you can use if preferred
+
+parse.md.qualtrics <- function(file.qsv=NULL, 
+                               itemSplit = "...-", 
+                               designHead = "Display Order", 
+                               itemConfirm = NULL,
+                               friendly.names = NULL,
+                               returnList=FALSE) {
+
+  library(matrixStats)
+  all.OK <- TRUE
+  if(is.null(file.qsv)) {
+    stop("Must specify QSV filename to process.")
+  }
+  
+  file.name   <- file.qsv
+  
+  # constants used by Qualtrics but should be stable and not require change
+  rowNames    <- 1         # line in the CSV with Qualtrics's names
+  rowItems    <- 2         # line in the CSV with actual MaxDiff item text
+  rowIntern   <- 3         # line in the CSV with Qualtrics's internal reference names
+  
+  # first read the data itself
+  cat("Reading file:", file.name, "\n")
+  md.all.raw <- read.csv(file.name, header=FALSE, stringsAsFactors=FALSE)
+  
+  # which row has item labels?
+  rowItems.found <- which(apply(md.all.raw, 1, function(x) { any(grepl(designHead, x, fixed=TRUE)) } ))[1]
+  if (length(rowItems.found) < 1) {
+    stop("No row with items names, separated", itemSplit, "found in", file.qsv)
+  }
+  # print(head(md.all.raw))
+  # print(rowItems.found)
+  if (rowItems.found != rowItems) {
+    warning("Row with item names, row =", rowItems.found, "does not match Qualtrics defined standard, row =", rowItems)
+    all.OK <- FALSE
+  }
+  
+  
+  # get plausible MD columns 
+  # ... 1: which cols have "Display Order" in label?
+  # ... 2: extracting the "Qn" from #1, do the results have (mode) exactly 2 unique responses per respondent?
+  # ... 3: extracting the item label (using itemSplit), are there 4 or more copies of the headers?
+  
+  design.cols <- which(sapply(md.all.raw[rowItems.found, ], 
+                              function(x) grepl(designHead, x, fixed=TRUE)))
+  
+  if (length(design.cols) < 1) {
+    stop("No design columns found.")
+  }
+  design.df            <- data.frame(design.cols = design.cols)
+  design.names         <- md.all.raw[rowNames, design.df$design.cols]
+  # do any of the design matrix names lack the expected "-" ? (old files used ".")
+  # if so, replace . with -
+  if (any(!grepl("-", design.names, fixed=TRUE))) {
+    cat("Found some design column headers with legacy Qualtrics names ... attempting to correct:\n")
+    cat("Old:\n")
+    fix.cols <- !grepl("-", design.names, fixed=TRUE)
+    print(design.names[fix.cols])
+    design.names         <- gsub(".", "-", design.names, fixed=TRUE)
+    cat("New:\n")
+    print(design.names[fix.cols])
+    cat("\n")
+  }
+
+  # do any of the design matrix names begin with non-alphabetic character?
+  #
+  # TO DO 
+  #
+  
+  design.df$item.names <- unlist(sapply(design.names, 
+                                        function (x) lapply(strsplit(x, "-"), 
+                                                            function (x) x[length(x)])))
+  design.df$col.count  <- NA
+  
+  # among all of the design columns, how often does each corresponding item header?
+  for (i in 1:nrow(design.df)) {
+    col.regex    <- paste0("^", design.df[i, "item.names"], "_")
+    col.matching <- which(grepl(col.regex, md.all.raw[rowNames, ] ))
+    # if not found, try alternative regex
+    if (length(col.matching) == 0) {
+      col.tail     <- tail(strsplit(design.df[i, "item.names"], "_")[[1]], 1)
+      col.regex    <- paste0("^", col.tail, "_")
+      col.matching <- which(grepl(col.regex, md.all.raw[rowNames, ] ))
+    }
+    design.df[i, "col.count"] <- length(col.matching)
+  }
+  
+  find.mode <- function(x) {
+    x.unique <- unique(x)
+    x.unique[which.max(tabulate(match(x, x.unique)))]
+  }
+  
+  md.items.n.inferred <- find.mode(design.df$col.count)
+  
+  # method above may fail, depending on format. If so, try different regex to match
+  if (md.items.n.inferred == 0) {
+    # TO DO   
+  }
+  
+  design.cols         <- design.df$design.cols[design.df$col.count==md.items.n.inferred]
+  
+  cat("File structure implies", md.items.n.inferred, "MaxDiff items.\n")
+  
+  item.names  <- design.df$item.names[design.df$col.count==md.items.n.inferred]
+  item.regex <- paste0(item.names, "_", collapse="|")
+  md.cols <- which(grepl(item.regex, md.all.raw[rowNames, ] ))
+  
+  # remove any columns where item text !grep "itemConfirm"
+  if (!is.null(itemConfirm)) {
+    md.cols <- md.cols[grepl(itemConfirm, md.all.raw[rowItems.found, md.cols], fixed = TRUE)]
+  }
+  if (!all(diff(md.cols) == 1)) {
+    cat("==> Found non-sequential MaxDiff columns. Keeping following as MaxDiff columns:\n")
+    cat(md.cols, "\n")
+    warning("==> Columns with MaxDiff items were not sequential. Check output above. If you have interstitial items, this may be no problem.")
+    all.OK <- FALSE
+  }
+  
+  # print(md.cols)
+  # get the item names from those columns
+  # determine the number of items
+  md.labels <- unique(as.character(md.all.raw[rowItems.found, md.cols]))
+  md.labels <- gsub("[[:space:]]", " ", md.labels)     # fix non-printing character issue
+
+  # check labels to separate recurring from non-recurring portions
+  # ... easiest if itemSplit occurs, so let's check that first
+  if(all(grepl(itemSplit, md.labels, fixed=TRUE))) {
+    md.labels <- unlist(lapply(md.labels, function(x) strsplit(x, itemSplit, fixed=TRUE)[[1]][2]))
+  } else {
+    # didn't find itemSplit everywhere, so we need to infer the splitting point
+    # get first 2 adjacent item names
+    cat("Item splitting token [", itemSplit, "] not found. Inferring MaxDiff item list.\n", sep="")
+    cut.points <- rep(NA, length(md.labels)-1)
+    for (j in 1:(length(md.labels)-1)) {
+      name.1 <- md.labels[j]
+      name.2 <- md.labels[j+1]
+      i <- 1
+      while (i < nchar(name.1) & i < nchar(name.2)) {
+        if (substr(name.1, i, i+1) != substr(name.2, i, i+1)) {
+          break
+        }
+        i <- i + 1
+      }
+      cut.points[j] <- i + 1
+    }
+    cut.point     <- min(cut.points)
+    
+    cut.problem <- cut.point > as.numeric(sapply(md.labels, function(x) nchar(x)))
+    if (any(cut.problem)) {
+      cat("Item split is dubious: Position", i, "in:", name.1, "--VS--", name.2, "")
+      warning("Item label split is extremely dubious")
+    }
+    md.labels <- as.character(sapply(md.labels, function(x) substr(x, cut.point, nchar(x))))
+  }
+
+  md.labels <- unique(md.labels)                       # and then update the labels
+  
+  cat("Found K = ", length(md.labels), " MaxDiff items (unique column headers)\n", sep="")
+  if (length(md.labels) != md.items.n.inferred) {
+    cat("==>WARNING! File structure and item labels imply different item list length.\n")
+    warning("File structure and item labels imply different item list length.")
+  }
+  if (length(md.labels) < 10) {
+    warning("Seemingly short list of labels (K=", length(md.labels), " items in list). Review item headers for correctness.")
+    all.OK <- FALSE
+  }
+  print(md.labels)
+  
+  # determine the number of sets (choice tasks) and report that
+  # design.cols <- which(sapply(md.all.raw[rowItems.found, ], 
+  #                            function(x) grepl(headOrder, x, fixed=TRUE)))
+  
+  # remove any design matric entries where item text !grep "itemConfirm"
+  if (!is.null(itemConfirm)) {
+    design.cols <- design.cols[grepl(itemConfirm, md.all.raw[rowItems.found, design.cols], fixed = TRUE)]
+  }
+  
+  cat("\nFound M =", length(design.cols), "screens of MaxDiff items per respondent. Columns with experimental design matrices are:\n")
+  print(design.cols)
+  if (length(design.cols) < 1 | length(design.cols) > 20) {
+    warning("Questionable number of MaxDiff screens (is usually 5-15 tasks). Please confirm the design matrix.")
+    all.OK <- FALSE
+  }
+  if (!all(diff(design.cols) == 1)) {
+    warning("==> Columns with design matrices (see above) are not sequential. Current code expects sequential columns.")
+    all.OK <- FALSE
+  }
+  
+  # determine number of apparent responses and report that
+  rowStart <- max(rowNames, rowItems, rowIntern) + 1
+  rowEnd   <- nrow(md.all.raw)
+  while(md.all.raw[rowEnd , 1] < " ") {     # wind back any blank lines at end
+    rowEnd <- rowEnd - 1
+  } 
+  
+  cat("\nObservations are in rows ", rowStart, " to ", rowEnd, ". ", sep="")
+  if (rowEnd < rowStart) {
+    warning("Data rows are blank; end row is earlier than starting row.")
+    all.OK <- FALSE
+  }
+  resp.rows <- rowStart:rowEnd
+  
+  cat("Found N =", rowEnd-rowStart+1, "respondents. Checking design matrices ...")
+  
+  # appears to be rowEnd - rowStart + 1 responses ... do they all have design matrices?
+  design.df  <- data.frame(sapply(md.all.raw[rowStart:rowEnd, design.cols], 
+                                  function(x) strsplit(x, "|", fixed = TRUE)))
+  
+  design.len <- apply(design.df, c(1,2), function(x) length(unlist(x)))
+  design.len <- data.frame(design.len)
+  
+  iPerTaskMin <- min(rowMins(as.matrix(design.len)))
+  iPerTaskMed <- median(apply(design.len, 1, median))
+  iPerTaskMax <- max(rowMaxs(as.matrix(design.len)))
+  cat("\nFound ", iPerTaskMed, " (double-check: ", ifelse(iPerTaskMax==iPerTaskMin, "OK)", "ERROR)"), " items shown per task.", sep="")
+  resp.anybad <- FALSE
+  if (iPerTaskMin != iPerTaskMax) {
+    cat("\nFound min", iPerTaskMin, "median", iPerTaskMed, "and max", iPerTaskMax, "entries in design matrices.\n")
+    cat("Check the following respondents' design matrix entries. Suggest deleting these respondents: \n")
+    bad.des <- apply(design.len, 1, function(x) any(x != iPerTaskMed))
+    bad.df  <- design.len[bad.des, ]
+    which.bad <- which(bad.des) + rowIntern
+    resp.rows <- setdiff(resp.rows, which.bad)
+    resp.anybad <- TRUE
+    rownames(bad.df) <- which.bad
+    print(bad.df)
+    all.OK <- FALSE
+    warning("Error: Design matrices are not all of equal length. Check FALSE entries in design columns as printed.")
+  } 
+  
+  # determine the Qualtrics best and worst codes and report them
+  codeMin <- min(as.numeric(as.matrix(md.all.raw[rowStart:rowEnd , md.cols])), na.rm = TRUE)
+  codeMax <- max(as.numeric(as.matrix(md.all.raw[rowStart:rowEnd , md.cols])), na.rm = TRUE)
+  codeLen <- length(unique(na.omit(as.numeric(as.matrix(md.all.raw[rowStart:rowEnd , md.cols])))))
+  
+  cat("\n\nReviewing coded answers. Found min code (worst?) =", codeMin, "and max (best?) = ", codeMax, "\n")
+  if (codeLen != 2) {
+    warning("Found too many coded responses for Best/Worst; expecting only 2 different responses.")
+    cat("WARNING on coded responses. Expecting 2 unique. Found:\n  ", 
+        unique(na.omit(as.numeric(as.matrix(md.all.raw[rowStart:rowEnd , md.cols])))), 
+        ".\nReview responses in columns:\n")
+    print(md.cols)
+    all.OK <- FALSE
+  }
+  
+  # check number of responses per respondentiPerTaskMed
+  best.count  <- apply(md.all.raw[rowStart:rowEnd , md.cols], 1, 
+                       function(x) sum(na.omit(x)==codeMax))
+  worst.count <- apply(md.all.raw[rowStart:rowEnd , md.cols], 1, 
+                       function(x) sum(na.omit(x)==codeMin))
+  cat("Found average =", mean(best.count), "'best' answers, and average =", mean(worst.count), "'worst' answers.\n")
+  
+  count.OK    <- best.count==length(design.cols) & worst.count==length(design.cols)
+  if (any(!count.OK)) warning("You have some sets that don't match the expected number of answers!")
+  cat("\nOf N =", length(count.OK), "total:\n  Found N =", sum(count.OK), "complete responses, and N =", sum(!count.OK), 
+      "with missing observations.\n")
+  
+  # final report
+  cat("\n=======\nSUMMARY\nReviewed file:", file.qsv)
+  if (all.OK) {
+    cat("\n\n==> Your data appear OK in this check.\n==> Following are suggested md.design entries:\n\n")
+  } else {
+    cat("\n==>WARNING!\nYour data failed some checks. Please check the warnings() and output as above.\nPending that, here are suggested md.design entries:\n")
+  }
+  
+  cat("  file.wd          = NULL,\n")
+  cat("  file.qsv         =", file.qsv,",\n")
+  if(resp.anybad) {
+    cat("  resp.rows        = c(", paste0(resp.rows, ","), "),\n")
+  } else {
+    cat("  resp.rows        = NULL ,\n")
+  }
+  
+  cat("  md.item.k        =", length(md.labels), ",\n")
+  cat("  md.item.tasks    =", length(design.cols),",\n")
+  cat("  md.item.pertask  =", iPerTaskMed,",\n")
+  
+  cat("  q.startDesCol    =", min(design.cols),",\n")
+  cat("  q.startMDcol     =", min(md.cols),",\n")
+  cat("  q.endMDcol       =", max(md.cols),",\n")
+  if(!all(diff(md.cols) == 1)) {
+    cat("  q.mdcols         =c(", paste0(md.cols, ","), "),\n")
+  }
+  cat("  q.codeMDpos      =", codeMax,", # [double-check!]\n")
+  cat("  q.codeMDneg      =", codeMin,"  # [double-check!]\n")
+  
+  if (is.null(friendly.names)) {
+    friendly.names <- md.labels
+  }
+
+  if (!resp.anybad) {
+    resp.rows <- NULL
+  }
+  
+  if(returnList) {
+    md.define.qt <- list(
+      file.qsv         = file.qsv,
+      resp.rows        = resp.rows,
+      # REQUIRED: MAXDIFF DESIGN 
+      md.item.k        = length(md.labels),                  # total # of items on maxdiff list
+      md.item.tasks    = length(design.cols),                # num of choice trials per respondent (max)
+      md.item.pertask  = iPerTaskMed,                        # num of concepts shown in each trial
+      # REQUIRED (PROBABLY): QUALTRICS FILE LAYOUT
+      q.startDesCol     = min(design.cols),                  # the first column with design matrix (e.g., "6|3|2|9" or whatever)
+      q.startMDcol      = min(md.cols),                      # the column where the MaxDiff responses begin. ASSUMES continuous in current version
+      q.endMDcol        = max(md.cols),                      # where the MaxDiff items end. See not #7 above!
+      q.mdcols          = md.cols,
+      q.itemSplit       = itemSplit,                         # separator between Qualtrics header & actual MaxDiff item label
+      q.removeInc       = TRUE,                              # remove respondents with any missing MaxDiff observations? 
+      q.codeMDpos       = codeMax,  # (usually 2, but varies) #  code for "winning" MD item, from Qualtrics
+      q.codeMDneg       = codeMin, # (usually 1, but check)  #  code for "losing" MD item
+      md.item.names     = friendly.names
+    )
+    if(all(diff(md.cols) == 1)) {
+      md.define.qt$q.mdcols <- NULL
+    }
+    
+    cat("\nThis function is returning an md.define object\nExample code snippet to use it:\n")
+    cat("  test.read.q        <- read.md.qualtrics(md.define)\n")
+    cat("  md.define$md.block <- test.read.q$md.block\n")
+    cat("  mod.logit          <- md.quicklogit(md.define)\n")
+    cat("  summary(mod.logit)\n")
+    return(md.define.qt)
+  } else {
+    if (all.OK) {
+      cat("\nNext step: consider 'returnList=TRUE' parameter to create an md.define object from this function.\n")
+      cat("Example code:\n")
+      cat("  md.define          <- parse.md.qualtrics('", file.qsv, "', returnList=TRUE)\n", sep="")
+    }
+  }
+  if (all.OK) {
+    cat("\n\n==> Your data appear OK in this check. See next steps listed above.\n")
+  } else {
+    cat("\n==>WARNING!\nYour data failed some checks. Check the warnings() and output above.\n")
+  }
+}
+
+#############################################################
+# MAXDIFF CODE HISTORY
+# 
+# started tracking with 0.51, February 14, 2018
+#
+# version 0.51
+#    1. added optional restart capability to HB estimation -- will add new iterations to where previous run ended
+# version 0.57
+#    1. fixed issue with q.mdcols, where interstitial item columns were not correctly omitted from MaxDiff design matrix
+# version 0.58
+#    1. added item.order option to plot.md.group()
+#    2. fixed bug where respondent ID showed up as an "item" in plot.md.group()
+# version 0.59
+#    1. added "item.order=[group]" option for plot.md.group()
+# version 0.60
+#    1. change default augmentation method to threshold method instead of grid expansion
+# version 0.61
+#    1. added function documentation to prep for reverse integration with Rcbc.R
+#
 
 ###############################################
 ###############################################
@@ -2836,8 +3760,6 @@ plot.md.relevant <- function(md.define, item.disguise=FALSE) {
 #
 ###############################################
 ###############################################
-
-
 
 
 
@@ -2950,6 +3872,7 @@ cpm.plot <- function(data.in, brand.ids, measure.vars,
     aspect.lock = TRUE, rotate = 0, coeffs = "std",
     plot.brands = TRUE, plot.CI = FALSE, plot.scatter = TRUE,
     offset = 1.0, ci.width = 1.96, 
+    fontsize.vector=6, fontsize.brand=8,
     title.main = "Perceptual Map", title.legend = "Brands") {
   
   require(grid)      # for arrow functionality
@@ -3099,7 +4022,7 @@ cpm.plot <- function(data.in, brand.ids, measure.vars,
       geom_text_repel(data = attribute.plot.points, 
           aes(x=xDim, y=yDim, label=arrow.text),  # cut: alpha
           # hjust=0.5, vjust=1.5, 
-          size = I(6)) +
+          size = I(fontsize.vector)) +
       # set the chart boundaries
       coord_cartesian(xlim = c(x.min, x.max), ylim = c(y.min, y.max)) + 
       # nice background
@@ -3128,7 +4051,7 @@ cpm.plot <- function(data.in, brand.ids, measure.vars,
             colour=I("blue"), fill=I("blue"), size=3) +
         geom_text(data=means.points, 																  # labels
             aes(x=xDim, y=yDim, label=point.text),
-            hjust=0.5, vjust=1.5, size = I(8), colour="darkred")
+            hjust=0.5, vjust=1.5, size = I(fontsize.brand), colour="darkred")
   }
   if (plot.CI) {
     cpm.p <- cpm.p +
