@@ -18,7 +18,7 @@
 <div id="outer">
     
 	<div id="header">
-		<h1><a href="index.html">R for Marketing Research and Analytics</a></h1>
+		<h1><a href="index.html">R for Marketing Research and Analytics, 2nd Ed.</a></h1>
 		<h2></h2>
 	</div>
     
@@ -38,132 +38,18 @@
 		<div id="primaryContentContainer">
 			<div id="primaryContent">
                 <h2>Errata</h2>
-                 <p><b>General note</b>. R packages often change their computation algorithms, function names, and requirements. <strong>If your code doesn't work or the output doesn't match what is shown in the book</strong>, see <b>Section 1.5.4</b> in the book for notes and ideas.</p>
+                 <p><b>General note</b>. R packages often change their computation algorithms, function names, and requirements. <strong>If your code doesn't work or the output doesn't match what is shown in the book</strong>, see <b>Section 1.6.4</b> in the book for notes and ideas.</p>
+                
+                <h3><i>For 1st edition errata, see <a href="errata-1ed.html">Errata for 1st edition only.</a></i></h3>
+                
                 <h3>Specific errata and package update notes</h3>
+                
                 
                 <table>
                     <tr>
                         <th>Page</th>
                         <th>Change</th>
                     </tr>
-                    <tr class="rowA">
-                       <td>86-87</td>
-                        <td>The X axis label refers to a different variable in the code and Figure 4.3). This could be changed in line 4 of the code block on p. 86 to read:<br><br> 
-                            <pre>xlab="Prior 12 months in-store sales ($)",</pre> <br>
-                        instead of referring to <code>online</code> sales.
-                        </td>
-                     </tr>
-                        <td>101</td>
-                        <td>In the printed book, the code and caption for Figure 4.10 refer to <code>cust.df$store.trans</code> but the plot shows <code>cust.df$store.spend</code>. Although the lesson is the same with either variable, code to generate the plot as shown is:<br><br>
-<pre>
-  plot(cust.df$distance.to.store, cust.df$store.spend)
-  plot(1/sqrt(cust.df$distance.to.store), cust.df$store.spend)
-</pre><br>
-                            The .R code file for Chapter 4 is correct; this erratum applies only to the printed code.
-                        </td>
-                    </tr>
-                   <tr class="rowB">
-                       <td>116</td>
-                        <td>The first code block should index along <code>i.seq</code> in the loop instead of <code>NULL</code>, as follows:<br><br>
-<pre>
-  i.seq <- NULL
-  for (i in seq_along(i.seq)) { print (i) } #better
-</pre>
-                        </td>
-                     </tr>
-                    <tr class="rowA">
-                        <td>163</td>
-                        <td>Add following line at beginning of first code block:<br><br>
-                        <pre>library(gpairs)  # also, install gpairs package if needed</pre><br>
-                            (for print only; the available <a href="code.html" accesskey="3" title="">.R file</a> is correct)
-                        </td>
-                    </tr>
-                
-                    <tr class="rowB">
-                        <td>281, 288</td>
-                        <td><code>compareFit()</code> should now be surrounded with <code>summary()</code> to show results:<br><br>
-                        <pre>
-  summary(compareFit(pies.fit.NH1, pies.fit.NH3, pies.fit)) # p. 281
-  summary(compareFit(sat.fit, satAlt.fit, nested=TRUE))     # p. 288
-</pre>
-                        </td>
-                     </tr>                    
-
-                    <tr class="rowA">
-                        <td>294, 296</td>
-                        <td>A different random may work better in the latest release of <code>semPLS</code>. For example, try:<br><br>
-                        <pre>  set.seed(04635)</pre><br>
-                            This emphasizes the point in the chapter: path models may fail to converge with small samples (and may be dependent on random starting points to "succeed").
-                        </td>     
-                    </tr>                    
-                
-                
-                   <tr class="rowB">
-                       <td>314</td>
-                        <td>The call to <code>Mclust()</code> hangs or returns an error. This was caused by changes in the mclust package update from version 4.4 to 5.0. There are two possible workarounds:<br><br>(1) to match the book, install mclust 4.4 instead. This can be done in several ways per the general instructions <a href="http://stackoverflow.com/questions/17082341/installing-older-version-of-r-package">here</a>.<br><br>
-                            For example, on Mac or Linux, this can be done as follows:<br><br><pre>
-  old.mc <- "https://cran.r-project.org/src/contrib/Archive/mclust/mclust_4.4.tar.gz"
-  install.packages(old.mc, repos=NULL, type="source")</pre><br>
-                            (2) alternatively, to use mclust v5 (but obtain results that differ from those in the book), add the following line before calling mclust(): <br><br><pre>  mclust.options(hcUse = "SVD")</pre>
-                        </td>
-                     </tr>
-                
-
-                    <tr class="rowA">
-                        <td>329</td>
-                        <td>Add following line at beginning of first code block:<br><br>
-                        <pre>  seg.rf.class <- predict(seg.rf, seg.df.test)</pre><br>
-                            (for print only; the available <a href="code.html" accesskey="3" title="">.R file</a> is correct)
-                        </td>
-                    </tr>                    
-
-                    <tr class="rowB">
-                        <td>365</td>
-                        <td>To ensure that the results obtained from the simulated data match the results obtained when the data is loaded from the data file, the code block should be replaced with:<br><br>
-                        <pre>
-  cbc.df <- read.csv("http://goo.gl/5xQObB", 
-                     colClasses = c(seat = "factor", price = "factor", 
-                                    choice="integer"))
-  cbc.df$eng <- factor(cbc.df$eng, levels=c("gas", "hyb", "elec"))
-  cbc.df$carpool <- factor(cbc.df$carpool, levels=c("yes", "no"))
-  summary(cbc.df)
-</pre>
-                        </td>
-                    </tr>                    
-
-                
-                
-            <tr class="rowA">
-                       <td>369</td>
-                         <td>In the printed book, the <code>rm()</code> line is misplaced, and should occur after the final "<code>}</code>" that closes the <code>for</code> loop:<br><br>
-                        <pre>
-    ...
-    cbc.df <- rbind(cbc.df, conjoint.i)
-  }   # <-- goes here, not at end
-
-  # Tidy up, keeping cbc.df and attrib
-  rm(a, i, resp.id, carpool, mu, Sigma, coefs, coef.names,
-     conjoint.i, profiles, profiles.i, profiles.coded, utility,
-     wide.util, probs, choice, nalt, nques)
-</pre><br>
-                        The .R code file for Chapter 13 is correct; this erratum applies only to the printed code.
-                        </td>
-                </tr>                    
-
-                    
-                   <tr class="rowB">
-                       <td>384</td>
-                        <td>The output of "<code>summary(m1.hier)</code>" shows negative estimates for <code>sd.seat7</code> and <code>sd.price</code>, which is incorrect because variance cannot be negative. The negative sign is an artifact of the estimation routine that <code>mlogit()</code> uses when reporting <code>summary()</code>, as of Oct 30, 2015. The command "<code>stdev(m1.hier)</code>" is another way to check the estimates of standard errors for the population distribution, and correctly reports them all as positive.
-                        </td>
-                     </tr>
-
-                   <tr class="rowA">
-                       <td>387</td>
-                         <td>The first line of code at the top of the page should reference the model input to the function, rather than the m2.hier model object as follows:<br><br>
-                        <pre>  coef.mu <- model[1:dim(coef.Sigma)[1]]</pre><br>
-                        This will not affect the output of the code in the book, but it would produce an error, if the function is used with a different model.
-                        </td>
-                </tr>                    
                     
                 </table>
                 
