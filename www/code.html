@@ -39,30 +39,41 @@
 			<div id="primaryContent">
                 
 				<h2>R Code Files</h2>
-                <h3>These files match the 1st edition (with only minor changes for the 2nd edition). Please check back on or after April 15, 2019 for final versions of code for the 2nd edition.</h3>
-                <p>Chapters 2-13 each have an accompanying .R code file. You can access the code files one at a time, or as a single ZIP file with all chapters at once.</p>
-                <h3><i>Note: for 1st edition, see: <a href="code-1ed.html">Code Files for 1st edition.</a></i></h3>
+                <p>Chapters 2-14 each have an accompanying .R code file. You can access the code files one at a time, or as a single ZIP file with all chapters at once.</p>
+                <h3><i>Note: for 1st edition specifically, see: <a href="code-1ed.html">Code Files for 1st edition.</a></i></h3>
+                    <i>Readers of the 1st edition are also welcomed to use the 2nd edition code shown here; differences are mostly easy to follow.</i><br><br>
                 <ul>
-                    <li>All chapters: Immediate download <a href="code/ChapmanFeit-RforMarketing-Code.zip">single ZIP file</a></li>
-                    <li>Chapter 2: Immediate download <a href="code/chapter2-ChapmanFeit.R">Chapter2-ChapmanFeit.R</a></li>
-                    <li>Chapter 3: Immediate download <a href="code/chapter3-ChapmanFeit.R">Chapter3-ChapmanFeit.R</a></li>
-                    <li>Chapter 4: Immediate download <a href="code/chapter4-ChapmanFeit.R">Chapter4-ChapmanFeit.R</a></li>
-                    <li>Chapter 5: Immediate download <a href="code/chapter5-ChapmanFeit.R">Chapter5-ChapmanFeit.R</a></li>
-                    <li>Chapter 6: Immediate download <a href="code/chapter6-ChapmanFeit.R">Chapter6-ChapmanFeit.R</a></li>
-                    <li>Chapter 7: Immediate download <a href="code/chapter7-ChapmanFeit.R">Chapter7-ChapmanFeit.R</a></li>
-                    <li>Chapter 8: Immediate download <a href="code/chapter8-ChapmanFeit.R">Chapter8-ChapmanFeit.R</a></li>
-                    <li>Chapter 9: Immediate download <a href="code/chapter9-ChapmanFeit.R">Chapter9-ChapmanFeit.R</a></li>
-                    <li>Chapter 10: Immediate download <a href="code/chapter10-ChapmanFeit.R">Chapter10-ChapmanFeit.R</a></li>
-                    <li>Chapter 11: Immediate download <a href="code/chapter11-ChapmanFeit.R">Chapter11-ChapmanFeit.R</a></li>
-                    <li>Chapter 12: Immediate download <a href="code/chapter12-ChapmanFeit.R">Chapter12-ChapmanFeit.R</a></li>
-                    <li>Chapter 13: Immediate download <a href="code/chapter13-ChapmanFeit.R">Chapter13-ChapmanFeit.R</a></li>   
+                    <li>All chapters: Download code <a href="code/ChapmanFeit-RforMarketing2e-code.zip">Code, single ZIP file</a></li>
+                    <li>All chapters: Download code, data, and exercises: <a href="data/ChapmanFeit-2e-CodeDataExercises-RforMarketing.zip">Code, Data, and Exercises, single ZIP file</a> </li>
+                    <li>Chapter 2: <a href="code/chapter2-ChapmanFeit2e.R">Chapter2-ChapmanFeit.R</a></li>
+                    <li>Chapter 3: <a href="code/chapter3-ChapmanFeit2e.R">Chapter3-ChapmanFeit.R</a></li>
+                    <li>Chapter 4: <a href="code/chapter4-ChapmanFeit2e.R">Chapter4-ChapmanFeit.R</a></li>
+                    <li>Chapter 5: <a href="code/chapter5-ChapmanFeit2e.R">Chapter5-ChapmanFeit.R</a></li>
+                    <li>Chapter 6: <a href="code/chapter6-ChapmanFeit2e.R">Chapter6-ChapmanFeit.R</a></li>
+                    <li>Chapter 7: <a href="code/chapter7-ChapmanFeit2e.R">Chapter7-ChapmanFeit.R</a></li>
+                    <li>Chapter 8: <a href="code/chapter8-ChapmanFeit2e.R">Chapter8-ChapmanFeit.R</a></li>
+                    <li>Chapter 9: <a href="code/chapter9-ChapmanFeit2e.R">Chapter9-ChapmanFeit.R</a></li>
+                    <li>Chapter 10: <a href="code/chapter10-ChapmanFeit2e.R">Chapter10-ChapmanFeit.R</a></li>
+                    <li>Chapter 11: <a href="code/chapter11-ChapmanFeit2e.R">Chapter11-ChapmanFeit.R</a></li>
+                    <li>Chapter 12: <a href="code/chapter12-ChapmanFeit2e.R">Chapter12-ChapmanFeit.R</a></li>
+                    <li>Chapter 13: <a href="code/chapter13-ChapmanFeit2e.R">Chapter13-ChapmanFeit.R</a></li>
+                    <li>Chapter 14: <a href="code/chapter14-ChapmanFeit2e.R">Chapter14-ChapmanFeit.R</a></li>
+                    
                 </ul>
                 
                 <h3>Other code</h3>
-                <p><a href="code/Rcbc.R"><code>Rcbc.R</code></a> is a set of utility functions in R for simulating conjoint surveys, estimating models, doing market simulation and other tasks. For documentation, read the inline comments thoroughly and run the examples located in <code>if (FALSE)</code> blocks in the code.</p>
+                <p><a href="https://github.com/cnchapman/choicetools"><code>choicetools</code></a> is an R package in development with utility functions for simulating conjoint surveys, estimating models, working with MaxDiff data, doing market simulation, and other tasks. Documentation is in progress; check the vignettes and/or read the .R file headers for example code. Note examples located in <code>if (FALSE)</code> blocks in the code.</p>
+                <p>To install <strong>choicetools</strong>:
+<pre>
+# install devtools package first, if needed: install.packages("devtools")
+library(devtools) 
+install_github("cnchapman/choicetools")
+</pre>
+                </p>
+                
                 
                 <h3>R-Forge Project Access</h3>
-                <p>Direct access to the R-Forge project site (<i>not generally needed</i>) is here: <a href="https://r-forge.r-project.org/projects/r-marketing/">https://r-forge.r-project.org/projects/r-marketing/</a> </p>
+                <p>Direct access to the R-Forge project site, i.e., hosting this website (<i>not generally needed</i>) is here: <a href="https://r-forge.r-project.org/projects/r-marketing/">https://r-forge.r-project.org/projects/r-marketing/</a> </p>
 
  			</div>
 		</div>
