@@ -1,0 +1,36 @@
+---
+title: "Basic R Notebook"
+author: Chris Chapman
+date: April 10, 2019
+output: html_notebook
+---
+
+# Introduction 
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. A notebook includes any text you want to write, along with R code and the *results* of R code. When you execute R code in a notebook, the results are shown inside your document.
+
+For readers of *R for Marketing Research and Analytics* we suggest using R Notebooks to save your work. See Appendix B in the 2nd edition for more discussion. For classroom usage, a notebook is a good way to show your work along with the exact results.
+
+Here are a few tips. First, you can create Section headers by using 1, 2, or 3 number signs (#) at the beginning of a line, followed by text.
+
+Second, you can format text with asterixes. Use *one for italic*, or **two for bold**.
+
+Third, you can include R code by clicking the *Insert Chunk* button on the toolbar. Put your code between the lines with "```".
+
+# Example Code
+
+To run the following code, either click the *Run* button (green arrow) on the code chunk, or click the "Run" menu above to see other options: 
+
+```{r}
+points <- 0:(100*pi) / 10
+plot(points, sin(points))
+```
+
+# Saving and Sharing Your Results
+
+Click the *Preview* button to see your document formatted as an output file. Be sure to run all your code first because Preview doesn't do that. *Run | Run All* will do that.
+
+One way to share your work is to email the .Rmd (R markdown) file for your notebook. Another option is to publish the notebook online (search for "publish Rstudio notebook"). Those allow the receipient to run your code and check it.
+
+You can also save just the output -- with code, results, and plots -- in several formats. Click on the *Preview* button above the code pane. You will see options to *Knit to HTML* (useful for saving results to a web site), *Knit to PDF* (create a PDF), and *Knit to Word* (save it as a Word document).
+
