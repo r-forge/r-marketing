@@ -43,20 +43,28 @@
                 
                 <h2>Welcome to <i>R for Marketing Research and Analytics</i></h2>
                 
-                <p><strong><i>Note, April 2019:</strong> The 2nd Edition of</i> R for Marketing Research and Analytics<i> was released this month. All code and exercises are posted here as .R files. We will update Exercise <i>Notebooks</i> in coming weeks (basic solutions in R code are available now).</p>
+                <p><strong>Note, April 2019:</strong> The 2nd Edition of <i>R for Marketing Research and Analytics</i>i> was released this month. All code and exercises are posted here as .R files. We will update Exercise <i>Notebooks</i> in coming weeks (basic solutions in R code are available now).</p>
                 
                 <p><strong><it>R for Marketing Research and Analytics</it></strong> by Chris Chapman and Elea McDonnell Feit is designed to teach R to marketing practitioners and data scientists. This site contains the latest, updated .R <a href="code.html" title="code">code files</a>; <a href="data.html" title="data">data files</a>; <a href="Instructor/slides-index.html">classroom slides</a>; and <a href="errata.html" title="errata">errata</a>.</p>
                 
                 <a href="images/Chapman_Revised_Cover-large.jpg"><img src="images/Chapman_Revised_Cover-small.jpg" alt="Book cover" style="height:300px"></a>
 
 				<p></p>
-                                                
 				<h3>Recent Updates</h3>
 				<table>
 					<tr>
 						<th>Date</th>
 						<th>Announcement</th>
 					</tr>
+                    <tr class="rowA">
+						<td>May 12, 2019</td>
+                        <td><p><b>Important 'errata'</b>: In April 2019, just after publication of the book, R 3.6.0 changed the way it generates random numbers. In many chapters we simulate data and perform other functions that use random numbers. Those results will change slightly from what the book shows. Options include:</p>
+                            <li><b>To match the book, <i>when using downloaded data</i></b>: no action is needed. You will notice few differences, except for minor details such as results from the <b>some()</b> function, and slightly different results in some Bayesian statistics (which use randomization).</li><br>
+                            <li><b>To match the book exactly</b> (especially <i>when simulating the data</i> as we recommend): give the command <b>RNGversion("3.5.0")</b> after starting R and before running code from the book.</li><br>
+                            <li><b>To see how things change</b>: just go ahead and use R's new default random number generator. Compare results to the book. They will be slightly different in the exact data points, yet quite similar for the overall statistical results.</li>
+                         
+					</tr>
+
 					<tr class="rowB">
 						<td>April 10, 2019</td>
                         <td><strong>What's new in the 2nd edition?</strong><br><br>
