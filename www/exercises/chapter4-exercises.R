@@ -50,7 +50,7 @@ summary(ecomm.df)
 hist(ecomm.df$behavNumVisits)
 plot(table(ecomm.df$behavNumVisits))
 
-# Adjust the previous table plot to improve it. Make the X axis logarithmic, and add a title and labels.
+# Adjust the previous table plot to improve it. Make the Y axis logarithmic, and add a title and labels.
 plot(log(table(ecomm.df$behavNumVisits)), 
      main ="Frequency of Site Visits",
      xlab = "Number of Site Visits",
