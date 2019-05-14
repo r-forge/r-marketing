@@ -6,8 +6,8 @@
 #
 # Copyright 2019, Springer 
 #
-# Last update: April 7, 2019
-# Version: 2.0
+# Last update: May 14, 2019
+# Version: 2.01
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,6 +29,15 @@
 
 # R code for Chapter 10
 
+# UPDATE May 2019:
+# set random number generator to use pre R 3.6 method, to match book
+# this affects data simulation and Bayesian methods, which use randomization
+# ==> Run this line:
+if (getRversion() >= "3.6.0") suppressWarnings(RNGversion("3.5.0"))
+# you could always change back to current with: 
+#   RNGversion(getRversion())
+
+
 ##### confirmatory factor analysis
 
 ### load data if you prefer
@@ -40,7 +49,6 @@ summary(piesSimData)
 library(lavaan)
 library(semTools)
 library(semPlot)
-
 
 
 ### simulate data

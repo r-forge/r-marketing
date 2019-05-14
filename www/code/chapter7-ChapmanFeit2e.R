@@ -6,8 +6,8 @@
 #
 # Copyright 2019, Springer 
 #
-# Last update: April 7, 2019
-# Version: 2.0
+# Last update: May 14, 2019
+# Version: 2.01
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,6 +26,15 @@
 # This file contains scripts used in Chapter 7 of Chapman & Feit (2019),
 #   "R for Marketing Research and Analytics, 2nd edition", Springer. 
 #################################################################
+
+
+# UPDATE May 2019:
+# set random number generator to use pre R 3.6 method, to match book
+# this affects data simulation and Bayesian methods, which use randomization
+# ==> Run this line:
+if (getRversion() >= "3.6.0") suppressWarnings(RNGversion("3.5.0"))
+# you could always change back to current with: 
+#   RNGversion(getRversion())
 
 
 ####### Alternative to load data if you want to skip simulation
