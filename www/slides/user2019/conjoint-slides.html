@@ -783,7 +783,7 @@ hljs.initHighlightingOnLoad();
 
   
 
-
+<style>.small-code pre code {  font-size: 1em;}</style>
 
 
 
@@ -797,11 +797,7 @@ hljs.initHighlightingOnLoad();
 <h1>choicetools: a package for conjoint analysis and best-worst surveys</h1><p>Chris Chapman (ChromeOS) &amp; Eric Bahna (Android Auto), Google<br/>July 10, 2019</p>
 
 <div class="slideContent" >
-<style>
-.small-code pre code {
-  font-size: 1em;
-}
-</style>
+<p>These slides: <a href="http://bit.ly/2RO51fq">http://bit.ly/2RO51fq</a> [2 Romeo Oscar 51 foxtrot quebec]</p>
 
 </div>
 
@@ -914,7 +910,7 @@ knitr::kable(head(cbc.tab, 3))  # first choice trial, 3 products
 </tr>
 </tbody></table>
 
-<p>(Usually you obtain the design from a survey authoring platform.)</p>
+<p>(Usually design comes from a survey authoring platform.)</p>
 
 </div>
 
@@ -1115,11 +1111,11 @@ adds a hash value for the design.</p>
 <section data-transition="linear" data-transition-speed="default">
 <h3>Creating Simulated Preference Data</h3>
 <div class="slideContent small-code" >
-<p>The simplest model is an aggregate multinomial logit model (MNL).
-The coefficients are <em>part worths</em>. These sum to zero across levels
-of attributes.  <strong><code>generateRNDpws()</code></strong>simulates part worths.</p>
-
-<p><strong><code>pickMNLwinningCards()</code></strong> finds a winner for each task:</p>
+<p>The simplest model is a multinomial logit (MNL). Coefficients are
+<em>part worths</em>, which sum to 0 across attribute levels.
+<code>generateRNDpws()</code> simulates a single vector of part worths
+<code>pickMNLwinningCards()</code>
+finds a winner for each task:</p>
 
 <pre><code class="r">cbc.pws &lt;- generateRNDpws(cbc.attrs)    # make up some zero-sum part worths
 cbc.win &lt;- pickMNLwinningCards(cbc.des, cbc.pws)  # winning cards with them
@@ -1220,9 +1216,8 @@ knitr::kable(head(cbind(cbc.win, cbc.des), 3))
 </tr>
 </tbody></table>
 
-<p>In the first set &ndash; the first three rows &ndash; the third concept
-(Brand 3, Style 1, Price 5, etc.) was preferred and selected in the <strong><code>cbc.win</code></strong>
-vector.</p>
+<p>In the first task &ndash;first 3 rows &ndash; the third concept
+(Brand 3, Style 1, etc.) was preferred and selected (<strong><code>cbc.win</code></strong>).</p>
 
 </div>
 
@@ -1281,7 +1276,7 @@ display CBC tasks in a suitable format for respondents.</p>
 responses had been given there.</p>
 
 <pre><code class="r">csv.filename &lt;- &quot;~/Downloads/testCBC.csv&quot;
-writeCBCdesignCSV(cbc.tab, filename=csv.filename,   # filename=&quot;&quot; for console
+writeCBCdesignCSV(cbc.tab, filename=csv.filename,   # file &quot;&quot; for console
                   cards=cbc.concepts, trials=cbc.tasks,
                   attr.list=cbc.attrs, lab.attrs=names(cbc.attrs),
                   lab.levels = cbc.levels, overwrite=TRUE)
@@ -1326,8 +1321,7 @@ cbc.choices &lt;- readCBCchoices(cbc.tab, filename=csv.filename,
 <strong><code>estimateMNLfromDesign()</code></strong> estimates part worths. It is for didactic
 purposes, using gradient descent. HB (<em>next slide</em>) is for production.</p>
 
-<p>For the random data, part worths have no
-correspondence to the original values:</p>
+<p>For random data, part worths do not correspond to original values:</p>
 
 <pre><code class="r">cbc.mnl2 &lt;- estimateMNLfromDesign(cbc.des, cbc.choices, cards=cbc.concepts,
                                   no.output = TRUE)
@@ -1346,9 +1340,9 @@ abline(h=0)
 <h3>Hierarchical Bayes Estimation</h3>
 <div class="slideContent" >
 <p><small>
-Hierachical Bayes (HB) estimation is used to estimate
-a mixed effects model. The <em>upper level</em> has fixed effects, while
-the <em>lower level</em> estimates random effects for each respondent.</p>
+Hierachical Bayes (HB) estimates a mixed effects model.
+The <em>upper level</em> has fixed effects, while
+the <em>lower level</em> gives random effects for each respondent.</p>
 
 <p>To estimate HB, use <code>estimateMNLfromDesignHB()</code>. It is a wrapper that
 calls <code>ChoiceModelR::choicemodelr()</code>
