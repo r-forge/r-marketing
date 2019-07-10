@@ -6,12 +6,12 @@
 
 choicetools: a package for conjoint analysis and best-worst surveys
 ========================================================
-author: Chris Chapman (ChromeOS) & Eric Bahna (Android Auto), Google
+author: Chris Chapman (Chrome OS) & Eric Bahna (Android Auto), Google
 date: July 10, 2019
 autosize: true
 font-family: 'Arial'
 
-These slides: http://bit.ly/2RO51fq [2 Romeo Oscar 51 foxtrot quebec]
+Slides: http://bit.ly/2RO51fq [2 Romeo Oscar 51 foxtrot quebec]
 
 
 ```{r setup, include = FALSE}
@@ -32,7 +32,8 @@ Overview
 
 Package: In development, v 0.9073
 ```{r, eval=FALSE}
-devtools::install_github("cnchapman/choicetools")
+library(devtools)
+install_github("cnchapman/choicetools")
 ```
 
 
@@ -141,6 +142,7 @@ Creating Simulated Preference Data
 ========================================================
 class: small-code
 
+<small>
 The simplest model is a multinomial logit (MNL). Coefficients are
 *part worths*, which sum to 0 across attribute levels.
 `generateRNDpws()` simulates a single vector of part worths
@@ -152,9 +154,8 @@ cbc.win <- pickMNLwinningCards(cbc.des, cbc.pws)  # winning cards with them
 knitr::kable(head(cbind(cbc.win, cbc.des), 3))
 ```
 
-In the first task --first 3 rows -- the third concept
-(Brand 3, Style 1, etc.) was preferred and selected (**`cbc.win`**).
-
+In this task the 3rd concept (Brand 3, etc.) is preferred and selected (**`cbc.win`**).
+</small>
 
 Aggregate Multinomial Logit Model
 ========================================================
@@ -182,13 +183,10 @@ Aggregate MNL Estimation
 class: small-code
 
 <small>
-Eestimate part worths based on "observed" choices:
+Estimate part worths based on "observed" choices, and plot them vs. original 
+values. There is near perfect recovery:
 ```{r, fig.show='hold', echo=TRUE, results="hide"}
 cbc.mnl <- estimateMNLfromDesign(cbc.des, cbc.win, cards=cbc.concepts)
-```
-
-Plot those vs. original part worths. There is near perfect recovery:
-```{r, fig.show='hold'}
 plot(cbc.pws, cbc.mnl)
 ```
 </small>
@@ -201,7 +199,7 @@ It is more interesting to collect real data. Usually one would use survey author
 tools such as **Sawtooth Software** or **Qualtrics**. These platforms
 display CBC tasks in a suitable format for respondents.
 
-For this vignette, we write out the CSV file. We will later read the data as if
+For this vignette, we write out a CSV file. We later read the data as if
 responses had been given there.
 
 ```{r}
@@ -245,15 +243,12 @@ Estimation of Random Choice Data
 class: small-code
 
 <small>
-**`estimateMNLfromDesign()`** estimates part worths. It is for didactic
-purposes, using gradient descent. HB (*next slide*) is for production.
-
-For random data, part worths do not correspond to original values:
+**`estimateMNLfromDesign()`** estimates part worths. It is mainly for teaching 
+and uses gradient descent. HB (*next slide*) is for production. For 
+random data, part worths do not correspond to original values:
 ```{r}
-cbc.mnl2 <- estimateMNLfromDesign(cbc.des, cbc.choices, cards=cbc.concepts,
-                                  no.output = TRUE)
-plot(cbc.pws, cbc.mnl2)
-abline(h=0)
+cbc.mnl2 <- estimateMNLfromDesign(cbc.des, cbc.choices, cards=cbc.concepts, no.output = TRUE)
+plot(cbc.pws, cbc.mnl2); abline(h=0)
 ```
 
 </small>
@@ -405,10 +400,10 @@ surprisingly small samples.
 
 More on Conjoint Analysis & CBC
 =========================================
-See Chapter 13 for CBC with ```mlogit``` and hierarchical Bayes modeling.
+See Chapter 13 for CBC with ```mlogit``` and hierarchical Bayes.
 
 <div align="left">
-<img src="conjoint-slides-figure/chapmanfeit.png" width=422 height=640>
+<img src="conjoint-slides-figure/chapmanfeit.png" width=380 height=576>
 </div>
 
 
@@ -456,15 +451,17 @@ Thank you! + References 1
 <small>
 - Bahna, E., and Chapman, CN (2018). Constructed, Augmented MaxDiff. In B. Orme, ed., *Proc 2018 Sawtooth Software Conference*.
 - Chapman, CN, and Feit, EMF (2019). *R for Marketing Research and Analytics*, 2nd ed. Chapter 13: Choice Modeling. New York: Springer.
-- Yves Croissant (2019). **mlogit**: Multinomial Logit Models. R package v 0.4-1. https://CRAN.R-project.org/package=mlogit
+- Chapman, CN, & Alford, JL (2010). Product portfolio evaluation using choice modeling and genetic algorithms. In B. Orme, ed., *Proc 2010 Sawtooth Software Conference*.
+- Croissant, Y (2019). **mlogit**: Multinomial Logit Models. R package v 0.4-1. https://CRAN.R-project.org/package=mlogit
 - Eddelbuettel, D; with A Lucas, J Tuszynski, H Bengtsson, S Urbanek, M Frasca, B Lewis, M Stokely, H Muehleisen, D Murdoch, J Hester, W Wu, Q Kou, T Onkelinx, Ml Lang, V Simko, K Hornik and R Neal. (2018). **digest**. R package v 0.6.18. https://CRAN.R-project.org/package=digest
-- Rossi, PE, Allenby, GM, and McCulloch, RE (2005). *Bayesian Statistics and Marketing*. New York: Wiley.
+
 </small>
 
 =========================================
 Thank you! + References 2
 
 <small>
+- Rossi, PE, Allenby, GM, and McCulloch, RE (2005). *Bayesian Statistics and Marketing*. New York: Wiley.
 - Sermas, Ryan (2012). **ChoiceModelR**: Choice Modeling in R. R package v 1.2. https://CRAN.R-project.org/package=ChoiceModelR
 - Wickham, H. (2016). *ggplot2: Elegant Graphics for Data Analysis*. New York: Springer.
 - Wilke, CO. (2018). **ggridges**: Ridgeline Plots in 'ggplot2'. R package v 0.5.1. https://CRAN.R-project.org/package=ggridges
