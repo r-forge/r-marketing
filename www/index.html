@@ -56,14 +56,22 @@
 						<th>Date</th>
 						<th>Announcement</th>
 					</tr>
-                    <tr class="rowA">
-						<td>May 12, 2019</td>
+                    <tr class="rowB">
+						<td>PINNED: May 12, 2019</td>
                         <td><p><b>Important 'errata'</b>: In April 2019, just after publication of the book, R 3.6.0 changed the way it generates random numbers. In many chapters we simulate data and perform other functions that use random numbers. Those results will change slightly from what the book shows. Options include:</p>
                             <li><b>To match the book, <i>when using downloaded data</i></b>: no action is needed. You will notice few differences, except for minor details such as results from the <b>some()</b> function, and slightly different results in some Bayesian statistics (which use randomization).</li><br>
                             <li><b>To match the book exactly</b> (especially <i>when simulating the data</i> as we recommend): give the command <b>RNGversion("3.5.0")</b> after starting R and before running code from the book.</li><br>
                             <li><b>To see how things change</b>: just go ahead and use R's new default random number generator. Compare results to the book. They will be slightly different in the exact data points, yet quite similar for the overall statistical results.</li><br>
                             <li>If you're interested to read more about the reason for the change, see <a href="https://stat.ethz.ch/pipermail/r-devel/2018-September/076817.html">Bias in R's random integers?</a></li>
-                         
+                        </td>
+                        
+					</tr>
+
+                    <tr class="rowA">
+						<td>August 19, 2019</td>
+                        <td>Chris has released a development, in-progress R <code>choicetools</code> package to assist with choice-based conjoint and MaxDiff analyses. See <a href="slides/user2019/conjoint-slides.html">choicetools presentation from UseR! 2019</a> for details and example code. These tools may assist with choice-based conjoint simulations as discussed in Chapter 13.
+                        </td>
+                        
 					</tr>
 
 					<tr class="rowB">
