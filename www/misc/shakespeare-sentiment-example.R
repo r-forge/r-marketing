@@ -130,12 +130,14 @@ summary(shake.sent)
 library(reshape2)
 shake.sent.m <- melt(shake.sent)
 # add small constant so we can do plot with log transform and avoid 0
-shake.sent.m$value <- shake.sent.m$value + 0.01     
+shake.sent.m$value <- shake.sent.m$value + 0.01  
+library(car) # for some() function
 some(shake.sent.m, 20)
 
 library(ggplot2)
+library(Hmisc)    # for mean + CI estimation
 p <- ggplot(data=shake.sent.m, aes(x=variable, y=value, colour=variable)) +
-  stat_summary() + 
+  stat_summary(fun.data = "mean_cl_boot") + 
   scale_y_log10(minor_breaks = seq(0, 1, 0.01), breaks = seq(0, 1, 0.025)) +
   xlab("") +
   ylab("Emotion Intensity (mean+CI; log scale; right=high)") +
