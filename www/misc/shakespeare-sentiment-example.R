@@ -1,11 +1,17 @@
 # shakespeare-sentiment-example.R
 #
-# Author:  Chris Chapman
-# Content: R analysis snippets to accompany 
-#          Journal of Marketing invited commentary
-# Date:    September 2019
-# License: None. Free to use. Please cite the J Marketing commentary.
-#          There is no express or implied warranty of any kind.
+# Author:   Chris Chapman
+# Content:  R analysis snippets to accompany 
+#           Journal of Marketing invited commentary
+# Date:     September 2019
+# License:  CC By 4.0 (Creative Commons International Attribution 4.0)
+#           https://creativecommons.org/licenses/by/4.0/
+#           Briefly: free to use for any purpose if attributed.
+#           There is no express or implied warranty of any kind.
+# Citation: Chapman, Chris (2019). "Mind your text in the real world:
+#           Commentary on Berger et al, 2019, 'Uniting the Tribes: Using 
+#           Text for Marketing Insight'", Journal of Marketing, 
+#           [vol:pages tbd].
 
 ###
 ### OVERVIEW
@@ -206,10 +212,12 @@ p
 ########
 
 # also available as an R package at https://github.com/cnchapman/choicetools
+#
 # CITATION:
 # Chris Chapman, Eric Bahna, James Alford and Steven Ellis (2019). 
 # choicetools: Tools for Choice Modeling, Conjoint Analysis, and MaxDiff 
 # analysis of Best-Worst Surveys. R package version 0.0.0.9073.
+#
 
 ###############################################
 # cpm.plot()
@@ -217,7 +225,7 @@ p
 # All CPM functions follow this point
 ###############################################
 #
-# Authors: James L. Alford, and Christopher N. Chapman
+# Authors: James L. Alford, and Chris N. Chapman
 # Author contact: Chris Chapman, cnchapman@gmail.com
 #
 # CITATION FOR cpm.plot().  Use the main citation, or this one as you prefer:
