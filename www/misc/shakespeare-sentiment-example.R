@@ -4,7 +4,7 @@
 # Content:  R analysis snippets to accompany 
 #           Journal of Marketing commentary, "Mind your text for 
 #           marketing practice".
-# Date:     October 2020
+# Date:     October 2019
 # License:  CC By 4.0 (Creative Commons International Attribution 4.0)
 #           https://creativecommons.org/licenses/by/4.0/
 #           Briefly: free to use for any purpose if a citation is given.
