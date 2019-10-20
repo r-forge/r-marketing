@@ -2,16 +2,16 @@
 #
 # Author:   Chris Chapman
 # Content:  R analysis snippets to accompany 
-#           Journal of Marketing invited commentary
-# Date:     September 2019
+#           Journal of Marketing commentary, "Mind your text for 
+#           marketing practice".
+# Date:     October 2020
 # License:  CC By 4.0 (Creative Commons International Attribution 4.0)
 #           https://creativecommons.org/licenses/by/4.0/
-#           Briefly: free to use for any purpose if attributed.
+#           Briefly: free to use for any purpose if a citation is given.
 #           There is no express or implied warranty of any kind.
-# Citation: Chapman, Chris (2019). "Mind your text in the real world:
-#           Commentary on Berger et al, 2019, 'Uniting the Tribes: Using 
-#           Text for Marketing Insight'", Journal of Marketing, 
-#           [vol:pages tbd].
+#
+# CITATION: Chapman, Chris (2020). "Mind your text for marketing practice".
+#           Journal of Marketing, Janurary 2020 [vol:pages tbd].
 
 ###
 ### OVERVIEW
@@ -24,17 +24,34 @@
 #  2. code them for multidimensional sentiment using NRC sentiment dimensions
 #  3. examine the sentiment by work
 #  4. create a composite perceptual map of the sentiment dimensions
-
+#
+#  TO USE IT:
+#  1. Go to line 300 and "source" the CPM functions from them to end of file
+#  2. Step through the lines before that to go through the analyses
+#
+#  NOTE: ===> Important comments and discussion are embedded throughout.
+#
 
 ####
-
-# readGutenberg()
+# FUNCTION readGutenberg()
+#
 # a helper function to get files from Project Gutenberg and compile paragaphs
 # into individual lines. note that it leaves in all lines between the 
 # "start" and "end" markers, which includes title, authors, section headers,
 # and so forth.
+# 
+# REQUIRES: internet connectivity that can see www.gutenberg.org
+#
+# DISCUSSION
+# For the most robust usage, you would want more error checking, for example
+# to handle lack of internet connectivity
+# 
 readGutenberg <- function(urlIn, sourcename="source") {
-  text    <- readLines(con=url(urlIn))
+  # open the URL and read all the lines
+  con  <- url(urlIn)
+  text <- readLines(con)
+  close(con)
+  
   linein  <- ""
   result  <- rep("", length(text))   # hold results
   counter <- 1
@@ -65,10 +82,12 @@ readGutenberg <- function(urlIn, sourcename="source") {
   result <- result[1:counter]   # trim the trailing blanks for combined lines
   result <- data.frame(Line=result, stringsAsFactors = FALSE)
   result$Source <- sourcename
+  
   return(result)
 }
 
 # get six Shakespeare works
+# note: internet connection is required
 hamlet.file  <- readGutenberg("https://www.gutenberg.org/files/1524/1524-0.txt", sourcename = "Hamlet")
 midsum.file  <- readGutenberg("https://www.gutenberg.org/files/1514/1514-0.txt", sourcename = "Midsummer")
 lear.file    <- readGutenberg("https://www.gutenberg.org/files/1532/1532-0.txt", sourcename = "Lear")
@@ -83,8 +102,11 @@ shake.df$Source <- factor(shake.df$Source)
 summary(shake.df$Source)
 
 
-### Sentiment
-### also requires "textdata" package to get sentiments
+### SENTIMENT ANALYSIS
+###
+### REQUIRES: prior installation of packages: plyr, dplyr, tidytext, ggplot2
+###           "textdata" package to get sentiments
+###
 library(plyr)
 library(dplyr)
 library(tidytext)
@@ -92,11 +114,32 @@ library(ggplot2)
 
 # NOTE: the NRC dictionary must first be downloaded interactively
 # in the command prompt, issue the following:
-textdata::lexicon_nrc()
+textdata::lexicon_nrc()     # requires internet connection
 
-# a function that will score lines with the 10 dimensions in NRC data
-# note that NRC_EIL is a more recent dictionary than NRC, with degree coded
+# DISCUSSION:
+# In real usage, you would want to do more to construct a useful 
+# dictionary. For instance, if we were *really* interested in Shakespeare,
+# we would want to score the many unique/archaic words and contractions
+# that appear uniquely in Shakespeare. As mentioned in the JM commentary
+# article, it is important to check a dictionary for your domain.
+#
+# In the present case, we are interested in a (relatively) minimal
+# demonstration, so we simply use the NRC dictionary as is. But you 
+# should use caution before simply applying it as is to new data.
+
+
+# FUNCTION score.dims()
+#
+# a function that will score lines with the 10 dimensions in NRC data.
+# Note that NRC_EIL is a more recent dictionary than NRC, with degree coded
 # in addition to the emotional direction. We use NRC here for simplicity.
+#
+# DISCUSSION:
+# In real usage, you would want to do more pre-processing, such as 
+# removing stop words and possibly stemming and/or handling contractions.
+# Details would depend on the sentiment dictionary you are using. 
+# For this demonstration example, we simply process the text as is.
+#
 score.dims <- function(text.vec, silent=FALSE) {
   library(plyr)
   library(dplyr)
@@ -106,6 +149,13 @@ score.dims <- function(text.vec, silent=FALSE) {
   my.sent.nrc <- get_sentiments("nrc")
   my.sent.nrc$sentiment <- factor(my.sent.nrc$sentiment)
   
+  # FUNCTION score.dim()
+  # Scores a single line of text. Called only by the outer function.
+  #
+  # DISCUSSION: this is where you might handle more text clean up, such as
+  # handling stop words or excluding irrelevant words that might mislead
+  # the dictionary scoring in your domain.
+  #
   score.dim <- function(text.vec) {
     text.words <- data.frame(word=tolower(unlist(strsplit(text.vec, " "))))
     text.tab   <- table(na.omit(join(text.words, 
@@ -113,17 +163,29 @@ score.dims <- function(text.vec, silent=FALSE) {
     return(rbind(c(text.tab)))    # give it as a row suitable to add to a df
   }
   
+  # set up a place to hold the results and then iterate over all comments
+  #
+  # DISCUSSION
+  # I use rbind() here to add one result at a time, but this is 
+  # inefficient and slow in R. It is OK for small data sets, such as the 
+  # present data. For large data sets, it would be better to pre-allocate
+  # a matrix of the maximum size we expect, so it is only allocated a single
+  # time. Then fill in the rows with the line-by-line results.
+  #
   hats.sent.dim <- NULL
   for (i in seq_along(text.vec)) {
     line <- text.vec[i]
     hats.sent.one <- score.dim(line)
+    # see note above about efficiency of rbind(). I use it here for 
+    # simplicity of the code example, but pre-allocation would be better
+    # for larger data sets
     hats.sent.dim <- rbind(hats.sent.dim, hats.sent.one)
     if (!silent & i %% 100 == 0 ) {                          # show progress
       cat(i, " : ", hats.sent.one, " : ", line, "\n")
     }
   }
   hats.sent.dim <- data.frame(hats.sent.dim)
-  hats.sent.dim
+  return(hats.sent.dim)
 }
 
 ### SLOW: processes and scores every line ===>
@@ -159,11 +221,14 @@ p
 
 
 ## correlations among sentiments
+## note: this does not appear in the JM commentary article
 # total sentiment per comment
 str(shake.sent)
 shake.sent$SentScore <- rowSums(shake.sent[ , c("anticipation","joy","positive","surprise","trust")]) - 
                         rowSums(shake.sent[ , c("anger", "disgust", "fear", "negative", "sadness")])
 
+# note: must install package corrplot first
+# this plot does not appear in the JM commentary article
 library(corrplot)
 corrplot.mixed(cor(shake.sent[ , c(-11, -12)]),  # -11 to remove name of the work, -12 to remove sum
                upper="ellipse", 
@@ -180,7 +245,7 @@ corrplot.mixed(cor(shake.sent[ , c(-11, -12)]),  # -11 to remove name of the wor
 ###
 
 # ===> 
-# ===> Be sure to source the CPM functions below, or will get errors on cpm.plot, etc.
+# ===> Be sure to source the CPM functions below, or will get errors
 # ===> 
 
 sent.ratings <- shake.sent[ , 1:11]   # just ratings + platform
@@ -202,8 +267,17 @@ p <- cpm.plot(subset(sent.ratings, Work  != "Sonnets"),
 
 p
 
-######## END OF EXAMPLE ANALYTICS
 
+# DISCUSSION
+# Perceptual plots are very useful to examine a strategic space, but they
+# tend to be highly unstable -- especially in the discriminant analysis 
+# type used here -- and may move around with relatively small changes in 
+# the data. They are best viewed as an exploratory analysis suitable for 
+# strategic discussion and not (for example) as something to track over
+# time.
+#
+
+######## END OF EXAMPLE ANALYTICS
 
 
 ########
@@ -218,6 +292,9 @@ p
 # choicetools: Tools for Choice Modeling, Conjoint Analysis, and MaxDiff 
 # analysis of Best-Worst Surveys. R package version 0.0.0.9073.
 #
+
+
+
 
 ###############################################
 # cpm.plot()
