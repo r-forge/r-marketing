@@ -56,30 +56,46 @@
 						<th>Date</th>
 						<th>Announcement</th>
 					</tr>
+
                     <tr class="rowA">
-						<td>PINNED: May 12, 2019</td>
-                        <td><p><b>Important 'errata'</b>: In April 2019, just after publication of the book, R 3.6.0 changed the way it generates random numbers. In many chapters we simulate data and perform other functions that use random numbers. Those results will change slightly from what the book shows. Options include:</p>
-                            <li><b>To match the book, <i>when using downloaded data</i></b>: no action is needed. You will notice few differences, except for minor details such as results from the <b>some()</b> function, and slightly different results in some Bayesian statistics (which use randomization).</li><br>
-                            <li><b>To match the book exactly</b> (especially <i>when simulating the data</i> as we recommend): give the command <b>RNGversion("3.5.0")</b> after starting R and before running code from the book.</li><br>
-                            <li><b>To see how things change</b>: just go ahead and use R's new default random number generator. Compare results to the book. They will be slightly different in the exact data points, yet quite similar for the overall statistical results.</li><br>
-                            <li>If you're interested to read more about the reason for the change, see <a href="https://stat.ethz.ch/pipermail/r-devel/2018-September/076817.html">Bias in R's random integers?</a></li>
+						<td>PINNED July 17, 2020</td>
+                        <td>There are several minor updates related to the release of R 4.0, which has made the largest changes to R in more than 10 years. These involve:<br><br>
+                            <ul>
+                                <li>Random number generation</li>
+                                <li>A new default for data frames, <code>stringsAsFactors=FALSE</code></li>
+                                <li>Errors using the <code>mlogit</code> package for choice-based conjoint estimation</li>
+                            </ul>
+                            For details and solutions, see the <a href="errata.html">Errata</a> page.<br><br>
+                            We would note that there are only a few, relatively minor changes needed, for such a major release of R. This demonstrates the impressive stability of base R code over long periods of time.
                         </td>
                         
 					</tr>
 
-                    <tr class="rowB">
+                    <tr class="rowA">
 						<td>October 20, 2019</td>
                         <td>For readers of the <b>1st edition</b> (and the 2nd), the Exercises and solutions that were added in the 2nd edition are available to you. See the <a href="exercises/index.html">Exercises</a> page for the Exercises PDF and solution .R files.
                         </td>
                         
 					</tr>
 
-                    <tr class="rowA">
+                    <tr class="rowB">
 						<td>August 19, 2019</td>
                         <td>Chris has released a development, in-progress R <code>choicetools</code> package to assist with choice-based conjoint and MaxDiff analyses. See <a href="slides/user2019/conjoint-slides.html">choicetools presentation from UseR! 2019</a> for details and example code. These tools may assist with choice-based conjoint simulations as discussed in Chapter 13.
                         </td>
                         
 					</tr>
+                    
+                    <tr class="rowA">
+						<td>May 12, 2019</td>
+                        <td>R 3.6.0, R 4.0 and later (2019-) changed the random number generator. This changes results for data simulation (not downloaded data), exact results from Bayesian statistics, and a few other minor results throughout the book. If you wish to match the book exactly, give the following command after you start R (ignore the warning in this case):<br><br>
+<pre>
+RNGversion("3.5.0")
+</pre><br>
+                            This command has been incorporated into the downloadable .R files. See the <a href="errata.html">Errata page</a> for more options.
+                        </td>
+                                                
+					</tr>
+
 
 					<tr class="rowB">
 						<td>April 10, 2019</td>
