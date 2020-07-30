@@ -47,16 +47,36 @@
                         <th>Page (1st edition)</th>
                         <th>Change</th>
                     </tr>
-                   <tr class="rowB">
-                       <td>(throughout)</td>
-                        <td>R 3.6.0 (2019) changed its random number generator. This changes results for data simulation (not downloaded data), exact results from Bayesian statistics, and a few other minor results throughout the book. If you wish to match the book exactly, give the following command after you start R (ignore the warning in this case):<br><br>
+                    
+                    
+                    
+                     <tr class="rowA">
+                       <td>(throughout, where read.csv() is called)</td>
+                        <td>R 4.0 changed its handling of nominal/factor variables when reading data frames. To match previous results, you may add <b><code>stringsAsFactors=TRUE</code></b> to calls of <code>read.csv()</code>. In older versions of R (prior to R 4.0 in May 2020), text strings were converted by default to categorical factor variables. Starting in R 4.0 they are read as raw text and not converted to factors.<br><br>
+                        
+                        To obtain results as shown in the book, <code>stringsAsFactors=TRUE</code> must be added to  occurrences of <code>read.csv()</code> unless it is already specified otherwise (such as being set to FALSE). For example, on page 48, you may obtain the results shown in the book by using this command:<br><br>
+
 <pre>
-RNGversion("3.5.0")
-</pre><br>
-                            This command has been incorporated into the downloadable .R files. See the <a href="./index.html">Home page</a> Recent Updates (May 12, 2019) for more options.
+store.df <- read.csv("http://goo.gl/QPDdMl", stringsAsFactors=TRUE)  # added stringsAsFactors=TRUE
+</pre>
+                        </td>
+                     </tr>                 
+                     
+                    <tr class="rowB">
+                       <td>(throughout)</td>
+                            <td><p><b>Random data generation</b>: In April 2019, R versions 3.6.0 and later changed the way random numbers are generated. In many chapters we simulate data and perform other functions that use random numbers. Those results will change slightly from what the book shows. Options include:</p>
+                            <li><b>To match the book, <i>when using downloaded data</i></b>: no action is needed. You will notice few differences, except for minor details such as results from the <code>some()</code> function, and slightly different results in some Bayesian statistics (which use randomization).</li><br>
+                            <li><b>To match the book exactly</b> (especially <i>when simulating the data</i> as we recommend): give the following command after starting R and <i>before</i> running code from the book:<br><br>
+                                <pre>
+                                RNGversion("3.5.0")
+                                </pre>
+                                </li>
+                            <li><b>To see how things change</b>: just go ahead and use R's new default random number generator. Compare results to the book. They will be slightly different in the exact data points, yet quite similar for the overall statistical results.</li><br>
+                            <li>If you're interested to read more about the reason for the change, see <a href="https://stat.ethz.ch/pipermail/r-devel/2018-September/076817.html">Bias in R's random integers?</a></li>
                         </td>
                      </tr>
-                    
+
+
                     <tr class="rowA">
                        <td>86-87</td>
                         <td>The X axis label refers to a different variable in the code and Figure 4.3). This could be changed in line 4 of the code block on p. 86 to read:<br><br> 
@@ -161,14 +181,33 @@ RNGversion("3.5.0")
                         </td>
                 </tr>                    
 
+            <tr class="rowB">
+                       <td>372, 382</td>
+                        <td><code>mlogit</code> 1.10 changed its data structure, and code that calls <code>mlogit.data()</code>  gives an error about the <code>dfidx</code> package (a new data indexing package used by <code>mlogit </code>). We plan an update soon for <code>mlogit</code> 1.10, but meanwhile, you may use one of the following approaches for CBC data:<br><br>
+                            <ul>
+                                <li>Install an older version of <code>mlogit</code> (such as <code>mlogit 1.0-1</code>). Installing an older package can be complex and may require developer tools (such as a gcc compiler). We are not able to provide assistance with that process, but <a href="https://support.rstudio.com/hc/en-us/articles/219949047-Installing-older-versions-of-packages">see here</a> for more details. Assuming you have the required tooling, the following will install <code>mlogit 1.0-1</code>, which works with the code in our book:<br><br>
+                                
+                                <pre>
+install.packages(c("devtools", "lmtest", "statmod"))
+library(devtools)
+install_version("mlogit", version="1.0-1", repos="http://cran.us.r-project.org")
+                                </pre>
+                                </li>
+                                <li><b>Alternatively</b>, skip the sections about <code>mlogit</code> estimation (e.g., Sections 13.3.2, 13.3.5), and use hierarchical Bayes estimation instead (Section 13.5).</li>
+                            </ul>
+
+                        </td>
+                     </tr>
+
+
                     
-                   <tr class="rowB">
+                   <tr class="rowA">
                        <td>384</td>
                         <td>The output of "<code>summary(m1.hier)</code>" shows negative estimates for <code>sd.seat7</code> and <code>sd.price</code>, which is incorrect because variance cannot be negative. The negative sign is an artifact of the estimation routine that <code>mlogit()</code> uses when reporting <code>summary()</code>, as of Oct 30, 2015. The command "<code>stdev(m1.hier)</code>" is another way to check the estimates of standard errors for the population distribution, and correctly reports them all as positive.
                         </td>
                      </tr>
 
-                   <tr class="rowA">
+                   <tr class="rowB">
                        <td>387</td>
                          <td>The first line of code at the top of the page should reference the model input to the function, rather than the m2.hier model object as follows:<br><br>
                         <pre>  coef.mu <- model[1:dim(coef.Sigma)[1]]</pre><br>
