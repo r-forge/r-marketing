@@ -31,19 +31,22 @@
 # Chapter 13
 # Simulating choice data
 
-# UPDATE May 2019:
-# set random number generator to use pre R 3.6 method, to match book
-# this affects data simulation and Bayesian methods, which use randomization
-# ==> Run this line:
+# UPDATES
+# May 2019: set random number generator to use pre R 3.6 method, to match book
+#           affects data simulation and Bayesian methods, which use randomization
+#           ==> Run this line:
 if (getRversion() >= "3.6.0") suppressWarnings(RNGversion("3.5.0"))
-# you could always change back to current with: 
-#   RNGversion(getRversion())
+#           you could always change back to current with: 
+#           RNGversion(getRversion())
+#
+# Jan 2021: updated to work with mlogit version 1.1
+#           checks version inline and shapes data appropriately
 
 
 ##### LOAD FROM WEBSITE 
 cbc.df <- read.csv("http://goo.gl/5xQObB",
                    colClasses = c(seat = "factor", price = "factor",
-                   choice="integer"))
+                                  choice="integer"))
 cbc.df$eng <- factor(cbc.df$eng, levels=c("gas", "hyb", "elec"))
 cbc.df$carpool <- factor(cbc.df$carpool, levels=c("yes", "no"))
 summary(cbc.df)
@@ -56,7 +59,8 @@ attrib <- list(seat  = c("6", "7", "8"),
 ##### END, LOAD FROM WEBSITE
 
 
-##### FULL SIMULATION
+#####
+##### OR CREATE DATA (skip to "END OF DATA CREATION" if you loaded from above)
 
 attrib <- list(seat  = c("6", "7", "8"),
                cargo = c("2ft", "3ft"),
@@ -119,8 +123,8 @@ rm(a, i, resp.id, carpool, mu, Sigma, coefs, coef.names,
    wide.util, probs, choice, nalt, nques)
 # Try it!: ls()
 
-#### END, FULL SIMULATION
-
+##### END OF DATA CREATION
+#####
 
 
 # Choice data descriptives
@@ -134,10 +138,34 @@ xtabs(choice ~ cargo, data=cbc.df)
 
 # Fitting a choice model with mlogit
 library(mlogit)
-cbc.mlogit <- mlogit.data(data=cbc.df, choice="choice", shape="long", 
-                          varying=3:6, alt.levels=paste("pos", 1:3), 
-                          id.var="resp.id")
 
+# UPDATE Jan 2021: NOTE ON MLOGIT VERSIONS
+# the first branch here matches the printed books in 1st and 2nd edition,
+# but it only works only with mlogit versions < 1.1, e.g., 1.03
+#
+# if you want to check your version, use: packageVersion("mlogit")
+#
+if (packageVersion("mlogit") < "1.1") {
+  # for mlogit up through 1.0.3
+  # matches book 1st and 2nd edition, but fails with recent mlogit versions
+  cbc.mlogit <- mlogit.data(data=cbc.df, choice="choice", shape="long", 
+                            varying=3:6, alt.levels=paste("pos", 1:3), 
+                            id.var="resp.id")
+} else {
+  # for mlogit starting with version 1.1
+  library(dfidx)      # install if needed
+  
+  # add a column with unique question numbers, as needed in mlogit 1.1+
+  cbc.df$chid <- rep(1:(nrow(cbc.df)/3), each=3)
+  
+  # shape the data for mlogit
+  cbc.mlogit <- dfidx(cbc.df, choice="choice", 
+                      idx=list(c("chid", "resp.id"), "alt" ))
+}
+
+
+# fit the models
+library(mlogit)
 m1 <- mlogit(choice ~ 0 + seat + cargo + eng + price, data = cbc.mlogit)
 summary(m1)
 
@@ -145,8 +173,9 @@ m2 <- mlogit(choice ~ seat + cargo + eng + price, data = cbc.mlogit)
 summary(m2)
 
 lrtest(m1, m2)
+
 m3 <- mlogit(choice ~ 0 + seat + cargo + eng 
-                      + as.numeric(as.character(price)), 
+             + as.numeric(as.character(price)), 
              data = cbc.mlogit)
 summary(m3)
 lrtest(m1, m3)
@@ -167,7 +196,7 @@ predict.mnl <- function(model, data) {
   cbind(share, data)
 }
 
-(new.data <- expand.grid(attrib)[c(8, 1, 3, 41, 49, 26), ])
+(new.data <- expand.grid(attrib)[c(8, 1, 3, 41, 49, 26), ]) # find attrib at top
 predict.mnl(m3, new.data)
 predict.mnl(m1, new.data)
 
@@ -194,9 +223,10 @@ base.data <- expand.grid(attrib)[c(8), ]
 competitor.data <- expand.grid(attrib)[c(1, 3, 41, 49, 26), ]
 (tradeoff <- sensitivity.mnl(m1, attrib, base.data, competitor.data))
 
+if(saveFile) pdf("chapter13-1.pdf")
 barplot(tradeoff$increase, horiz=FALSE, names.arg=tradeoff$level,
         ylab="Change in Share for Baseline Product")
-dev.off()
+if(saveFile) dev.off()
 
 
 # Share predictions for two identical vehicles
@@ -205,10 +235,16 @@ predict.mnl(m1, new.data.2)
 
 
 # Prediction uncertainty & conjoint design
-small.cbc <- mlogit.data(data=cbc.df[1:(25*15*3), ], 
-                              choice="choice", shape="long", 
-                              varying=3:6, alt.levels=paste("pos", 1:3), 
-                              id.var="resp.id")
+if (packageVersion("mlogit") < "1.1") {
+  small.cbc <- mlogit.data(data=cbc.df[1:(25*15*3), ], 
+                           choice="choice", shape="long", 
+                           varying=3:6, alt.levels=paste("pos", 1:3), 
+                           id.var="resp.id")
+} else {
+  small.cbc <- dfidx(cbc.df[1:(25*15*3), ], choice="choice", 
+                     idx=list(c("chid", "resp.id"), "alt" ))
+}
+
 m4 <- mlogit(choice ~ 0 + seat + cargo + eng + price, data = small.cbc)
 summary(m4)  # larger standard errors
 
@@ -220,22 +256,18 @@ cbind(predict.mnl(m4, new.data), predict.mnl(m1, new.data))
 m1.rpar <- rep("n", length=length(m1$coef))
 names(m1.rpar) <- names(m1$coef)
 m1.rpar
-
-# warning: slow, may take 10-20 sec
 m1.hier <- mlogit(choice ~ 0 + seat + eng + cargo + price, 
                   data = cbc.mlogit, 
                   panel=TRUE, rpar = m1.rpar, correlation = FALSE)
 summary(m1.hier)
 stdev(m1.hier)
 
-# warning: even slower, takes 20-60 sec
 m2.hier <- update(m1.hier, correlation = TRUE)
 summary(m2.hier)
 cov2cor(cov.mlogit(m2.hier))
 
 
 # Simulating shares
-
 predict.hier.mnl <- function(model, data, nresp=1000) {
   # Function to predict shares from a hierarchical multinomial logit model 
   # model: mlogit object returned by mlogit()
@@ -277,9 +309,9 @@ str(choicemodelr.demos)
 
 library(ChoiceModelR)
 hb.post <- choicemodelr(data=choicemodelr.data, xcoding=rep(1, 7), 
-                           demos=choicemodelr.demos, 
-                           mcmc=list(R=20000, use=10000),
-                           options=list(save=TRUE))
+                        demos=choicemodelr.demos, 
+                        mcmc=list(R=20000, use=10000),
+                        options=list(save=TRUE))
 
 names(hb.post)
 

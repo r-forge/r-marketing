@@ -55,7 +55,7 @@
                        <td>(throughout, including 36, 49, 77, 80, 112, 133, 158, 188, 194, 220, 224, 230, 241, 248, 262, 263, 271, 282, 295, 296, 302, 338, 356, 361)</td>
                         <td>R 4.0 changed its handling of nominal/factor variables when reading data frames. To match previous results, you may add <b><code>stringsAsFactors=TRUE</code></b> to calls of <code>read.csv()</code>. In older versions of R (prior to R 4.0 in May 2020), text strings were converted by default to categorical factor variables. Starting in R 4.0 they are read as raw text and not converted to factors.<br><br>
                         
-                        To obtain results as shown in the book, <code>stringsAsFactors=TRUE</code> must be added to  occurrences of <code>read.csv()</code> unless it is already specified otherwise (such as being set to FALSE). For example, on page 49, you may obtain the results shown in the book by using this command:<br><br>
+                        To obtain results as shown in the book, <code>stringsAsFactors=TRUE</code> must be added to  occurrences of <code>read.csv()</code> unless it is already specified otherwise (such as being set to FALSE). <br><br>For example, on page 49, you may obtain the results shown in the book by using this command:<br><br>
 
 <pre>
 store.df <- read.csv("http://goo.gl/QPDdMl", stringsAsFactors=TRUE)  # added stringsAsFactors=TRUE
@@ -65,8 +65,10 @@ store.df <- read.csv("http://goo.gl/QPDdMl", stringsAsFactors=TRUE)  # added str
                     
                      <tr class="rowA">
                        <td>371, 379</td>
-                        <td><code>mlogit</code> 1.10 changed its data structure, and code that calls <code>mlogit.data()</code>  gives an error about the <code>dfidx</code> package (a new data indexing package used by <code>mlogit </code>). We plan an update soon for <code>mlogit</code> 1.10, but meanwhile, you may use one of the following approaches for CBC data:<br><br>
+                        <td><code>mlogit</code> 1.10 changed its data structure, and code that calls <code>mlogit.data()</code> gives an error about the <code>dfidx</code> package (a new data indexing package used by <code>mlogit </code>). This is fixed in the latest version of our <a href="code.html"> code files</a>.
+                            <br><br>Alternatively, you may use any of the following approaches for CBC data:<br><br>
                             <ul>
+                                <li>Use new code as noted above.</li>
                                 <li>Install an older version of <code>mlogit</code> (such as <code>mlogit 1.0-1</code>). Installing an older package can be complex and may require developer tools (such as a gcc compiler). We are not able to provide assistance with that process, but <a href="https://support.rstudio.com/hc/en-us/articles/219949047-Installing-older-versions-of-packages">see here</a> for more details. Assuming you have the required tooling, the following will install <code>mlogit 1.0-1</code>, which works with the code in our book:<br><br>
                                 
                                 <pre>
@@ -75,7 +77,7 @@ library(devtools)
 install_version("mlogit", version="1.0-1", repos="http://cran.us.r-project.org")
                                 </pre>
                                 </li>
-                                <li><b>Alternatively</b>, skip the sections about <code>mlogit</code> estimation (e.g., Sections 13.3.2, 13.4.1), and use hierarchical Bayes estimation instead (Section 13.5).</li>
+                                <li><b>Or</b>, skip the sections about <code>mlogit</code> estimation (e.g., Sections 13.3.2, 13.4.1), and use hierarchical Bayes estimation instead (Section 13.5).</li>
                             </ul>
 
                         </td>
