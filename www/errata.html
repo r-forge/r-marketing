@@ -65,10 +65,31 @@ store.df <- read.csv("http://goo.gl/QPDdMl", stringsAsFactors=TRUE)  # added str
                     
                      <tr class="rowA">
                        <td>371, 379</td>
-                        <td><code>mlogit</code> 1.10 changed its data structure, and code that calls <code>mlogit.data()</code> gives an error about the <code>dfidx</code> package (a new data indexing package used by <code>mlogit </code>). This is fixed in the latest version of our <a href="code.html"> code files</a>.
+                         <td><b>Errors with the <code>mlogit.data</code> function.</b> The package <code>mlogit</code> version 1.10 changed its data structure, such that code that calls <code>mlogit.data()</code> gives an error about the <code>dfidx</code> package (a new data indexing package used by <code>mlogit</code>). This is fixed in the latest version of our <a href="code.html"> code files</a>.<br><br>
+                            More specifically, the following line from the book produces an error:<br><br>
+                            <pre>
+cbc.mlogit <- mlogit.data(data=cbc.df, choice="choice", shape="long", 
++                         varying=3:6, alt.levels=paste("pos", 1:3), 
++                         id.var="resp.id")
+</pre>
+<br>The error it produces is this:<br><br>
+<pre>
+Error in guess(varying) : 
+  failed to guess time-varying variables from their names
+</pre>
+<br>This is due to unnecessary specification of varying columns (which is only needed for wide data). The solution is to remove that and to add unique -- across all respondents -- indexes for the choice sets, as follows. Use these lines of code instead of the one above:<br><br>
+<pre>
+library(dfidx)      # install if needed
+# add a column with unique question numbers, as needed in mlogit 1.1+
+cbc.df$chid <- rep(1:(nrow(cbc.df)/3), each=3)
+# shape the data for mlogit
+cbc.mlogit <- dfidx(cbc.df, choice="choice", 
++                   idx=list(c("chid", "resp.id"), "alt" ))
+</pre>
+                            
                             <br><br>Alternatively, you may use any of the following approaches for CBC data:<br><br>
                             <ul>
-                                <li>Use new code as noted above.</li>
+                                <li>Simply download and use the new code files as noted above.</li>
                                 <li>Install an older version of <code>mlogit</code> (such as <code>mlogit 1.0-1</code>). Installing an older package can be complex and may require developer tools (such as a gcc compiler). We are not able to provide assistance with that process, but <a href="https://support.rstudio.com/hc/en-us/articles/219949047-Installing-older-versions-of-packages">see here</a> for more details. Assuming you have the required tooling, the following will install <code>mlogit 1.0-1</code>, which works with the code in our book:<br><br>
                                 
                                 <pre>
