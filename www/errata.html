@@ -77,7 +77,7 @@ cbc.mlogit <- mlogit.data(data=cbc.df, choice="choice", shape="long",
 Error in guess(varying) : 
   failed to guess time-varying variables from their names
 </pre>
-<br>This is due to unnecessary specification of varying columns (which is only needed for wide data). The solution is to remove that and to add unique -- across all respondents -- indexes for the choice sets, as follows. Use these lines of code instead of the one above:<br><br>
+<br>This is due to the package shifting to a new index function (from the <code>dfidx</code> package), and a now unnecessary specification of varying columns (which is now only needed for wide data). The solution is to remove the varying column specification and to add choice set indices that are unique across all respondents.<br><br>For example, instead of having choice sets numbered 1:12 within each respondent, they should be numbered 1:12 for respondent 1, then 13:24 for respondent 2, and so forth. In short, use these lines of code instead of the one above from the book:<br><br>
 <pre>
 library(dfidx)      # install if needed
 # add a column with unique question numbers, as needed in mlogit 1.1+
